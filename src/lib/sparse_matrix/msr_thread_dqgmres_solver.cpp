@@ -5,48 +5,6 @@
 #include "containers/simple_vector.h"
 #include <cmath>
 
-msr_thread_dqgmres_solver::msr_thread_dqgmres_solver (const int t, const int p,
-                                                      pthread_barrier_t *barrier,
-                                                      simple_vector &shared_buf,
-                                                      msr_matrix &matrix,
-                                                      msr_matrix &precond,
-                                                      const preconditioner_type type,
-                                                      const int dim,
-                                                      const int max_iter,
-                                                      const double stop_criterion,
-                                                      bool &flag,
-                                                      simple_vector &rhs,
-                                                      simple_vector &rhs_save,
-                                                      limited_deque<simple_vector> &basis_buf,
-                                                      limited_deque<simple_vector> &basis_derivs_buf,
-                                                      limited_deque<simple_vector> &turns_buf,
-                                                      simple_vector &hessenberg_buf,
-                                                      simple_vector &p_sized_buf,
-                                                      simple_vector &x,
-                                                      simple_vector **v1_buf,
-                                                      simple_vector &v2_buf):
-  msr_thread_handler (t, p, barrier, shared_buf, matrix),
-  m_precond (precond),
-  m_precond_type (type),
-  m_dim (dim),
-  m_max_iter (max_iter),
-  m_stop_criterion (stop_criterion),
-  m_flag (flag),
-  m_rhs (rhs),
-  m_rhs_save (rhs_save),
-  m_basis (basis_buf),
-  m_basis_derivs (basis_derivs_buf),
-  m_turns (turns_buf),
-  m_hessenberg (hessenberg_buf),
-  m_p_sized_buf (p_sized_buf),
-  m_x (x),
-  m_v1 (v1_buf),
-  m_v2 (v2_buf)
-{
-
-
-}
-
 msr_thread_dqgmres_solver::msr_thread_dqgmres_solver (const int t,
                                                       msr_dqgmres_initializer &initializer) :
   msr_thread_handler (t, initializer.m_p, &(initializer.m_barrier),
