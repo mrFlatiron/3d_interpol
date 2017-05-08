@@ -13,8 +13,9 @@ SOURCES += src/main.cpp \
     src/lib/sparse_matrix/msr_thread_handler.cpp \
     src/lib/threads/thread_handler.cpp \
     src/lib/threads/thread_vector_utils.cpp \
-    src/kernel/linear_system_configurer.cpp \
-    src/kernel/workers/solver.cpp
+    src/kernel/workers/solver.cpp \
+    src/kernel/least_squares_interpol.cpp \
+    src/lib/ttime/ttime.cpp
 
 HEADERS += \
     src/lib/containers/limited_deque.h \
@@ -25,7 +26,8 @@ HEADERS += \
     src/lib/sparse_matrix/msr_thread_handler.h \
     src/lib/threads/thread_handler.h \
     src/lib/threads/thread_vector_utils.h \
-    src/kernel/linear_system_configurer.h \
-    src/kernel/workers/solver.h
+    src/kernel/workers/solver.h \
+    src/kernel/least_squares_interpol.h \
+    src/lib/ttime/ttime.h
 
 INCLUDEPATH += src/lib
