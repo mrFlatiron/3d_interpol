@@ -8,7 +8,7 @@
 least_squares_interpol::least_squares_interpol (const double a0,
                                                     const double a1,
                                                     const double b0,
-                                                    const double b1)
+                                                    const double b1, const int m, const int n)
 {
   if (fabs (a0) < 1e-15
       || fabs (b0) < 1e-15
@@ -25,11 +25,7 @@ least_squares_interpol::least_squares_interpol (const double a0,
   m_b1 = b1;
 
   m_c = m_a1 / m_a0;
-  m_n = 0;
-  m_m = 0;
-  m_hphi = 0;
-  m_hr = 0;
-  m_jacobian_coef = 0;
+  set_partition (m, n);
   m_func = nullptr;
 }
 
@@ -119,6 +115,11 @@ double least_squares_interpol::operator () (const double x, const double y) cons
   double r, phi;
   map_to_phir (x, y, phi, r);
 
+  return eval_phir (phi, r);
+}
+
+double least_squares_interpol::eval_phir (const double phi, const double r) const
+{
   int il, ir, jb, jt;
   int i_base, j_base;
 
@@ -172,8 +173,8 @@ double least_squares_interpol::operator () (const double x, const double y) cons
       j[1] = jt;
       ttype[0] = 2;
       ttype[1] = 3;
-      return m_func_coefs->at (i[0] * (m_n + 1) + j[0]) * triangle_val (il, jt, ttype[0], phi, r) +
-          m_func_coefs->at (i[1] * (m_n + 1) + j[1]) * triangle_val (il, jt, ttype[1], phi, r);
+      return m_expansion_coefs->at (i[0] * (m_n + 1) + j[0]) * triangle_val (il, jt, ttype[0], phi, r) +
+          m_expansion_coefs->at (i[1] * (m_n + 1) + j[1]) * triangle_val (il, jt, ttype[1], phi, r);
     }
   else
     {
@@ -209,25 +210,16 @@ double least_squares_interpol::operator () (const double x, const double y) cons
   double retval = 0;
   for (int k = 0; k < 3; k++)
     {
-      retval += m_func_coefs->at (i[k] * (m_n + 1) + j[k]) * triangle_val (i_base, j_base,
+      retval += m_expansion_coefs->at (i[k] * (m_n + 1) + j[k]) * triangle_val (i_base, j_base,
                                                                            ttype[k],
                                                                            phi, r);
     }
   return retval;
 }
 
-double least_squares_interpol::basis_val (const int i, const int j,
-                                            const double phi, const double r) const
+void least_squares_interpol::set_expansion_coefs (const simple_vector *coefs)
 {
-  double _phi = fabs (phi - i * m_hphi);
-  double _r = fabs (r - j * m_hr);
-  double retval = 1 - _r / m_hr - _phi / m_hphi;
-  return retval;
-}
-
-void least_squares_interpol::set_coefs (const simple_vector *coefs)
-{
-  m_func_coefs = coefs;
+  m_expansion_coefs = coefs;
 }
 
 
@@ -264,147 +256,72 @@ double least_squares_interpol::diagonal_val (const int i, const int j) const
 
 double least_squares_interpol::rhs_val (const int i, const int j) const
 {
-  int k_base = 2 * i;
-  int l_base = 2 * j;
-
   if (i == 0 && j == 0)
     {
-      double v1 = fancy_integral (k_base, l_base + 1, 0.5, 0.5, 1) +
-                  fancy_integral (k_base, l_base + 2, 0, 0, 0.5) +
-                  fancy_integral (k_base + 1, l_base + 2, 0, 0, 0.5) +
-                  turned_fancy_integral (k_base + 1, l_base + 1, 0.5, 0.5, 0);
-      double v2 = turned_fancy_integral (k_base + 1, l_base, 0.5, 1, 0.5) +
-                  turned_fancy_integral (k_base + 2, l_base + 1, 0, 0.5, 0) +
-                  turned_fancy_integral (k_base + 2, l_base, 0, 0.5, 0) +
-                  fancy_integral (k_base + 1, l_base + 1, 0.5, 0, 0.5);
+      double v1 = triangle_integral (i, j + 1, 2);
+      double v2 = triangle_integral (i + 1, j, 6);
 
       return v1 + v2;
     }
 
   if (i == 0 && j == m_n)
     {
-      double v1 = fancy_integral (0, 2 * m_n, 1, 0.5, 0.5) +
-                  fancy_integral (1, 2 * m_n, 0.5, 0, 0) +
-                  fancy_integral (0, 2 * m_n - 1, 0.5, 0, 0) +
-                  turned_fancy_integral (1, 2 * m_n - 1, 0, 0.5, 0.5);
+      double v1 = triangle_integral (i, j, 1);
       return v1;
     }
 
   if (i == m_m && j == 0)
     {
-      double v1 = turned_fancy_integral (2 * m_m, 0, 1, 0.5, 0.5) +
-                  turned_fancy_integral (2 * m_m - 1, 0, 0.5, 0, 0) +
-                  turned_fancy_integral (2 * m_m, 1, 0.5, 0, 0) +
-                  fancy_integral (2 * m_m - 1, 1, 0, 0.5, 0.5);
+      double v1 = triangle_integral (i, j, 4);
       return v1;
     }
 
   if (i == m_m && j == m_n)
     {
-      double v1 = fancy_integral (2 * m_m - 2, 2 * m_n, 0, 0.5, 0) +
-                  fancy_integral (2 * m_m - 1, 2 * m_n, 0.5, 1, 0.5) +
-                  fancy_integral (2 * m_m - 2, 2 * m_n - 1, 0, 0.5, 0) +
-                  turned_fancy_integral (2 * m_m - 1, 2 * m_n - 1, 0.5, 0, 0.5);
-      double v2 = turned_fancy_integral (2 * m_m, 2 * m_n - 2, 0, 0, 0.5) +
-                  turned_fancy_integral (2 * m_m - 1, 2 * m_n - 2, 0, 0, 0.5) +
-                  turned_fancy_integral (2 * m_m, 2 * m_n - 1, 0.5, 0.5, 1) +
-                  fancy_integral (2 * m_m - 1, 2 * m_n - 1, 0.5, 0.5, 0);
+      double v1 = triangle_integral (i - 1, j, 3);
+      double v2 = triangle_integral (i, j - 1, 5);
       return v1 + v2;
     }
 
   if (i == m_m)
     {
-      double v1 = turned_fancy_integral (2 * m_m, l_base, 1, 0.5, 0.5) +
-                  turned_fancy_integral (2 * m_m - 1, l_base, 0.5, 0, 0) +
-                  turned_fancy_integral (2 * m_m, l_base + 1, 0.5, 0, 0) +
-                  fancy_integral (2 * m_m - 1, l_base + 1, 0, 0.5, 0.5);
-      double v2 = fancy_integral (2 * m_m - 2, l_base, 0, 0.5, 0) +
-                  fancy_integral (2 * m_m - 1, l_base, 0.5, 1, 0.5) +
-                  fancy_integral (2 * m_m - 2, l_base - 1, 0, 0.5, 0) +
-                  turned_fancy_integral (2 * m_m - 1, l_base - 1, 0.5, 0, 0.5);
-      double v3 = turned_fancy_integral (2 * m_m, l_base - 2, 0, 0, 0.5) +
-                  turned_fancy_integral (2 * m_m - 1, l_base - 2, 0, 0, 0.5) +
-                  turned_fancy_integral (2 * m_m, l_base - 1, 0.5, 0.5, 1) +
-                  fancy_integral (2 * m_m - 1, l_base - 1, 0.5, 0.5, 0);
+      double v1 = triangle_integral (i, j, 4);
+      double v2 = triangle_integral (i -1, j, 3);
+      double v3 = triangle_integral (i, j - 1, 5);
       return v1 + v2 + v3;
     }
 
   if (i == 0)
     {
-      double v1 = fancy_integral (0, l_base + 2, 0, 0, 0.5) +
-                  fancy_integral (1, l_base + 2, 0, 0, 0.5) +
-                  fancy_integral (0, l_base + 1, 0.5, 0.5, 1) +
-                  turned_fancy_integral (1, l_base + 1, 0.5, 0.5, 0);
-      double v2 = turned_fancy_integral (2, l_base, 0, 0.5, 0) +
-                  turned_fancy_integral (1, l_base, 0.5, 1, 0.5) +
-                  turned_fancy_integral (2, l_base + 1, 0, 0.5, 0) +
-                  fancy_integral (1, l_base + 1, 0.5, 0, 0.5);
-      double v3 = fancy_integral (0, l_base, 1, 0.5, 0.5) +
-                  fancy_integral (1, l_base, 0.5, 0, 0) +
-                  fancy_integral (0, l_base - 1, 0.5, 0, 0) +
-                  turned_fancy_integral (1, l_base - 1, 0, 0.5, 0.5);
+      double v1 = triangle_integral (i, j + 1, 2);
+      double v2 = triangle_integral (i + 1, j, 6);
+      double v3 = triangle_integral (i, j, 1);
       return v1 + v2 + v3;
     }
 
   if (j == 0)
     {
-      double v1 = turned_fancy_integral (k_base, 0, 1, 0.5, 0.5) +
-                  turned_fancy_integral (k_base - 1, 0, 0.5, 0, 0) +
-                  turned_fancy_integral (k_base, 1, 0.5, 0, 0) +
-                  fancy_integral (k_base - 1, 1, 0, 0.5, 0.5);
-      double v2 = fancy_integral (k_base, 2, 0, 0, 0.5) +
-                  fancy_integral (k_base + 1, 2, 0, 0, 0.5) +
-                  fancy_integral (k_base, 1, 0.5, 0.5, 1) +
-                  turned_fancy_integral (k_base + 1, 1, 0.5, 0.5, 0);
-      double v3 = turned_fancy_integral (k_base + 2, 0, 0, 0.5, 0) +
-                  turned_fancy_integral (k_base + 1, 0, 0.5, 1, 0.5) +
-                  turned_fancy_integral (k_base + 2, 1, 0, 0.5, 0) +
-                  fancy_integral (k_base + 1, 1, 0.5, 0, 0.5);
+      double v1 = triangle_integral (i, j, 4);
+      double v2 = triangle_integral (i, j+1, 2);
+      double v3 = triangle_integral (i+1, j, 6);
       return v1 + v2 + v3;
     }
 
   if (j == m_n)
     {
-      double v1 = fancy_integral (k_base - 2, 2 * m_n, 0, 0.5, 0) +
-                  fancy_integral (k_base - 1, 2 * m_n, 0.5, 1, 0.5) +
-                  fancy_integral (k_base - 2, 2 * m_n - 1, 0, 0.5, 0) +
-                  turned_fancy_integral (k_base - 1, 2 * m_n - 1, 0.5, 0, 0.5);
-      double v2 = turned_fancy_integral (k_base, 2 * m_n - 2, 0, 0, 0.5) +
-                  turned_fancy_integral (k_base - 1, 2 * m_n - 2, 0, 0, 0.5) +
-                  turned_fancy_integral (k_base, 2 * m_n - 1, 0.5, 0.5, 1) +
-                  fancy_integral (k_base - 1, 2 * m_n - 1, 0.5, 0.5, 0);
-      double v3 = fancy_integral (k_base, 2 * m_n, 1, 0.5, 0.5) +
-                  fancy_integral (k_base + 1, 2 * m_n, 0.5, 0, 0) +
-                  fancy_integral (k_base, 2 * m_n - 1, 0.5, 0, 0) +
-                  turned_fancy_integral (k_base + 1, 2 * m_n - 1, 0, 0.5, 0.5);
+      double v1 = triangle_integral (i - 1, j, 3);
+      double v2 = triangle_integral (i, j - 1, 5);
+      double v3 = triangle_integral (i, j, 1);
       return v1 + v2 + v3;
     }
 
-  double v1 = turned_fancy_integral (k_base, l_base, 1, 0.5, 0.5) +
-              turned_fancy_integral (k_base - 1, l_base, 0.5, 0, 0) +
-              turned_fancy_integral (k_base, l_base + 1, 0.5, 0, 0) +
-              fancy_integral (k_base - 1, l_base + 1, 0, 0.5, 0.5);
-  double v2 = fancy_integral (k_base, l_base + 2, 0, 0, 0.5) +
-              fancy_integral (k_base + 1, l_base + 2, 0, 0, 0.5) +
-              fancy_integral (k_base, l_base + 1, 0.5, 0.5, 1) +
-              turned_fancy_integral (k_base + 1, l_base + 1, 0.5, 0.5, 0);
-  double v3 = turned_fancy_integral (k_base + 2, l_base, 0, 0.5, 0) +
-              turned_fancy_integral (k_base + 1, l_base, 0.5, 1, 0.5) +
-              turned_fancy_integral (k_base + 2, l_base + 1, 0, 0.5, 0) +
-              fancy_integral (k_base + 1, l_base + 1, 0.5, 0, 0.5);
+  double v1 = triangle_integral (i, j, 4);
+  double v2 = triangle_integral (i, j+1, 2);
+  double v3 = triangle_integral (i+1, j, 6);
 
-  double v4 = fancy_integral (k_base - 2, l_base, 0, 0.5, 0) +
-              fancy_integral (k_base - 1, l_base, 0.5, 1, 0.5) +
-              fancy_integral (k_base - 2, l_base - 1, 0, 0.5, 0) +
-              turned_fancy_integral (k_base - 1, l_base - 1, 0.5, 0, 0.5);
-  double v5 = turned_fancy_integral (k_base, l_base - 2, 0, 0, 0.5) +
-              turned_fancy_integral (k_base - 1, l_base - 2, 0, 0, 0.5) +
-              turned_fancy_integral (k_base, l_base - 1, 0.5, 0.5, 1) +
-              fancy_integral (k_base - 1, l_base - 1, 0.5, 0.5, 0);
-  double v6 = fancy_integral (k_base, l_base, 1, 0.5, 0.5) +
-              fancy_integral (k_base + 1, l_base, 0.5, 0, 0) +
-              fancy_integral (k_base, l_base - 1, 0.5, 0, 0) +
-              turned_fancy_integral (k_base + 1, l_base - 1, 0, 0.5, 0.5);
+  double v4 = triangle_integral (i - 1, j, 3);
+  double v5 = triangle_integral (i, j - 1, 5);
+  double v6 = triangle_integral (i, j, 1);
 
   return v1 + v2 + v3 + v4 + v5 + v6;
 }
@@ -637,11 +554,55 @@ double least_squares_interpol::triangle_val (const int i, const int j, const int
     case 6:
       return -(phi - i * m_hphi) / m_hphi;
     }
+  return 0;
 }
 
 double least_squares_interpol::triangle_integral (const int i, const int j, const int triangle_type) const
 {
-  return 0;
+  int k_base = 2 * i;
+  int l_base = 2 * j;
+  double val = 0;
+  switch (triangle_type)
+    {
+    case 1:
+      val += fancy_integral (k_base, l_base, 1, 0.5, 0.5) +
+             fancy_integral (k_base + 1, l_base, 0.5, 0, 0) +
+             fancy_integral (k_base, l_base - 1, 0.5, 0, 0) +
+             turned_fancy_integral (k_base + 1, l_base - 1, 0, 0.5, 0.5);
+      break;
+    case 2:
+      val += fancy_integral (k_base, l_base, 0, 0, 0.5) +
+             fancy_integral (k_base + 1, l_base, 0, 0, 0.5) +
+             fancy_integral (k_base, l_base - 1, 0.5, 0.5, 1) +
+             turned_fancy_integral (k_base + 1, l_base - 1, 0.5, 0.5, 0);
+      break;
+    case 3:
+      val += fancy_integral (k_base, l_base, 0, 0.5, 0) +
+             fancy_integral (k_base + 1, l_base, 0.5, 1, 0.5) +
+             fancy_integral (k_base, l_base - 1, 0, 0.5, 0) +
+             turned_fancy_integral (k_base + 1, l_base - 1, 0.5, 0, 0.5);
+      break;
+    case 4:
+      val += turned_fancy_integral (k_base, l_base, 1, 0.5, 0.5) +
+             turned_fancy_integral (k_base - 1, l_base, 0.5, 0, 0) +
+             turned_fancy_integral (k_base, l_base + 1, 0.5, 0, 0) +
+             fancy_integral (k_base - 1, l_base + 1, 0, 0.5, 0.5);
+      break;
+    case 5:
+      val += turned_fancy_integral (k_base, l_base , 0, 0, 0.5) +
+             turned_fancy_integral (k_base - 1, l_base, 0, 0, 0.5) +
+             turned_fancy_integral (k_base, l_base + 1, 0.5, 0.5, 1) +
+             fancy_integral (k_base - 1, l_base + 1, 0.5, 0.5, 0);
+      break;
+    case 6:
+      val += turned_fancy_integral (k_base, l_base, 0, 0.5, 0) +
+             turned_fancy_integral (k_base - 1, l_base, 0.5, 1, 0.5) +
+             turned_fancy_integral (k_base, l_base + 1, 0, 0.5, 0) +
+             fancy_integral (k_base - 1, l_base + 1, 0.5, 0, 0.5);
+      break;
+    }
+
+  return val;
 }
 
 

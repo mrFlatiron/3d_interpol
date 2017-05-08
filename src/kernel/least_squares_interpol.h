@@ -20,19 +20,21 @@ private:
   double m_hr;
   double m_jacobian_coef;
   double (*m_func) (const double, const double);
-  const simple_vector *m_func_coefs;
+  const simple_vector *m_expansion_coefs;
 public:
-  least_squares_interpol (const double a0, const double a1, const double b0, const double b1);
+  least_squares_interpol (const double a0, const double a1,
+                          const double b0, const double b1,
+                          const int m, const int n);
   ~least_squares_interpol ();
-  void set_partition (const int m, const int n);
   void set_system (msr_matrix &out) const;
   void set_rhs (simple_vector &out, double (*func) (const double, const double));
   void map_to_phir (const double x, const double y, double &phi, double &r) const;
   void map_to_xy (const double phi, const double r, double &x, double &y) const;
   double operator () (const double x, const double y) const;
-  double basis_val (const int i, const int j, const double phi, const double r) const;
-  void set_coefs (const simple_vector *coefs);
+  double eval_phir (const double phi, const double r) const;
+  void set_expansion_coefs (const simple_vector *coefs);
 private:
+  void set_partition (const int m, const int n);
   double diagonal_val (const int i, const int j) const;
   double rhs_val (const int i, const int j) const;
   int set_row (double *aa_row /*size 7*/, int *ja_row /*size 7*/, const int i, const int j) const;
