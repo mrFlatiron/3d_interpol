@@ -17,7 +17,7 @@ double f (const double x, const double y)
 {
   (void)x;
   (void)y;
-  return 5;
+  return x + y;
 }
 
 int main (int argc, char *argv[])
@@ -39,7 +39,7 @@ int main (int argc, char *argv[])
   least_squares_interpol configurer (a0, a1, b0, b1, m, n);
 
   msr_matrix system;
-  printf ("Setting Gramm matrix...\n");
+  printf ("Setting Gramm matrix...");
 
   double set_system_time  = get_monotonic_time ();
   configurer.set_system (system);
@@ -66,7 +66,7 @@ int main (int argc, char *argv[])
 
   simple_vector rhs (system.n ());
 
-  printf ("Setting rhs...\n");
+  printf ("Setting rhs...");
 
   double set_rhs_time = get_monotonic_time ();
   configurer.set_rhs (rhs, f);
@@ -111,16 +111,16 @@ int main (int argc, char *argv[])
 
   configurer.set_expansion_coefs (&x_out);
 
-  int maxpair[] = {0, 0};
+  double maxpair[] = {0, 0};
   double maxval = -1;
   double l2  = 0;
   double avg = 0;
   double func_max = 0;
-  for (int i = 0; i <= 2000; i++)
-    for (int j = 0; j <= 2000; j++)
+  for (int i = 0; i <= m; i++)
+    for (int j = 0; j <= n; j++)
       {
-        double phi = i * 1. / (2000);
-        double r = j * 1. / (2000);
+        double phi = i * 1. / (m);
+        double r = j * 1. / (n);
         double x, y;
         configurer.map_to_xy (phi, r, x, y);
         if (fabs (f (x, y)) > func_max)
@@ -131,14 +131,14 @@ int main (int argc, char *argv[])
         if (val > maxval)
           {
             maxval = val;
-            maxpair[0]= i;
-            maxpair[1] = j;
+            maxpair[0]= x;
+            maxpair[1] = y;
           }
       }
   l2 = sqrt (l2);
-  avg /= (4e6);
+  avg /= ((m + 1) * (n + 1));
   printf ("Solution L2 residual             : %.6le\n", norm);
-  printf ("Grid Max residual                : %.6le in node : (%d, %d)\n"
+  printf ("Grid Max residual                : %.6le in point : (%.3lf, %.3lf)\n"
           "Grid L2 residual                 : %.6le\n"
           "Grid average residual            : %.6le\n",
           maxval, maxpair[0], maxpair[1], l2, avg);
