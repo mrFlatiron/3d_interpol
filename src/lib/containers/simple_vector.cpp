@@ -13,6 +13,8 @@ simple_vector::simple_vector (const int size)
   m_size = size;
   if (size > 0)
     m_data = new double[size];
+  for (int i = 0; i < size; i++)
+    m_data[i] = 0;
 }
 
 simple_vector::simple_vector (const simple_vector &vect)

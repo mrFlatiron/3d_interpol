@@ -3,12 +3,30 @@
 #include <cstdio>
 #include "sparse_matrix/msr_matrix.h"
 #include "containers/simple_vector.h"
+#include "threads/thread_handler.h"
 
+
+least_squares_interpol::least_squares_interpol ()
+{
+
+}
 
 least_squares_interpol::least_squares_interpol (const double a0,
                                                     const double a1,
                                                     const double b0,
                                                     const double b1, const int m, const int n)
+{
+  set_ellipse (a0, a1, b0, b1);
+  set_partition (m, n);
+  m_func = nullptr;
+}
+
+least_squares_interpol::~least_squares_interpol ()
+{
+
+}
+
+void least_squares_interpol::set_ellipse (const double a0, const double a1, const double b0, const double b1)
 {
   if (fabs (a0) < 1e-15
       || fabs (b0) < 1e-15
@@ -25,13 +43,6 @@ least_squares_interpol::least_squares_interpol (const double a0,
   m_b1 = b1;
 
   m_c = m_a1 / m_a0;
-  set_partition (m, n);
-  m_func = nullptr;
-}
-
-least_squares_interpol::~least_squares_interpol ()
-{
-
 }
 
 void least_squares_interpol::set_partition (const int m, const int n)
@@ -92,6 +103,26 @@ void least_squares_interpol::set_rhs (simple_vector &out, double (*func)(const d
       {
         out[i * (m_n + 1) + j] = rhs_val (i, j);
       }
+}
+
+void least_squares_interpol::parallel_set_rhs (thread_handler &handler, simple_vector &shared_out, double (*func)(const double, const double))
+{
+  int t = handler.t_id ();
+  if (t == 0)
+    m_func = func;
+  handler.barrier_wait ();
+  int begin, work;
+  handler.divide_work ((m_m + 1) * (m_n + 1), begin, work);
+
+  int i_start = begin / (m_n + 1);
+  int j_start = begin - i_start * (m_n + 1);
+  int i_end = (begin + work - 1) / (m_n + 1);
+  int j_end = (begin + work - 1 - i_end * (m_n + 1));
+
+  for (int i = i_start; i <= i_end; i++)
+    for (int j = j_start; j<= j_end; j++)
+      shared_out[i * (m_n + 1) + j] = rhs_val (i, j);
+  handler.barrier_wait ();
 }
 
 void least_squares_interpol::map_to_phir (const double x, const double y, double &phi, double &r) const

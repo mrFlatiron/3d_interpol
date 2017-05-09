@@ -70,7 +70,7 @@ void gl_plot_widget::paintGL()
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glFrustum(0, 2, 0, 2, 0, 3); // near and far match your triangle Z distance
+  glOrtho(-1, 2, 0, 1, 0, 3); // near and far match your triangle Z distance
 
   glMatrixMode(GL_MODELVIEW);
 
@@ -79,9 +79,9 @@ void gl_plot_widget::paintGL()
 //  glTranslatef(-1.5f,0.0f,-6.0f);
 
   glBegin(GL_TRIANGLES);
-   glVertex3f( 1.0f, 1.0f, -0.1f);
-   glVertex3f( 0.0f, 0.0f, -0.1f);
-   glVertex3f( -1.0f, 1.0f, -0.1f);
+   glVertex3f( 1.0f, 0.0f, 1.0f);
+   glVertex3f( 0.0f, 1.0f, -5.0f);
+   glVertex3f( -1.0f, 0.0f, 0.0f);
   glEnd();
 
 
@@ -89,4 +89,9 @@ void gl_plot_widget::paintGL()
 //    glRotatef(yRot / 16.0, 0.0, 1.0, 0.0);
 //    glRotatef(zRot / 16.0, 0.0, 0.0, 1.0);
 
+}
+
+void gl_plot_widget::set_interpolator (least_squares_interpol *interpolator)
+{
+  m_interpolator = interpolator;
 }
