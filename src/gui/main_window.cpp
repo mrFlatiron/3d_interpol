@@ -38,6 +38,8 @@ QSize main_window::sizeHint () const
   return QSize (1024, 780);
 }
 
+
+
 void main_window::create_widgets ()
 {
   m_glwidget = new gl_plot_widget (this);
@@ -76,6 +78,14 @@ void main_window::create_widgets ()
 
   m_compute_pb = new QPushButton (this);
   m_compute_pb->setText ("Play");
+
+  m_turn_left = new QPushButton (this);
+  m_turn_left->setText ("<-");
+  m_turn_left->setAutoRepeat (true);
+
+  m_turn_right = new QPushButton (this);
+  m_turn_right->setText ("->");
+  m_turn_right->setAutoRepeat (true);
 }
 
 void main_window::set_layouts ()
@@ -88,11 +98,11 @@ void main_window::set_layouts ()
       m_glwidget->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Expanding);
       QGridLayout *glo_1 = new QGridLayout;
       {
-        glo_1->addWidget (new QLabel ("OX nodes:", this), 0, 0);
+        glo_1->addWidget (new QLabel ("OPHI nodes:", this), 0, 0);
         glo_1->addWidget (m_phi_partition, 0, 1);
         m_phi_partition->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-        glo_1->addWidget (new QLabel ("OY nodes:", this), 1, 0);
+        glo_1->addWidget (new QLabel ("OR nodes:", this), 1, 0);
         glo_1->addWidget (m_r_partition, 1, 1);
         m_r_partition->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
 
@@ -123,6 +133,12 @@ void main_window::set_layouts ()
         glo_1->addWidget (new QLabel ("Grid L2 residual:", this), 8, 0);
         glo_1->addWidget (m_l2, 8, 1);
         m_l2->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+
+        glo_1->addWidget (m_turn_left, 9, 0);
+        m_turn_left->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+
+        glo_1->addWidget (m_turn_right, 9, 1);
+        m_turn_right->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
       }
       hlo_1->addLayout (glo_1);
     }
@@ -137,23 +153,27 @@ void main_window::set_layouts ()
 void main_window::do_connects ()
 {
   connect (m_compute_pb, SIGNAL (clicked ()), this, SLOT (interpolate ()));
+  connect (this, SIGNAL (interpolation_done ()), m_glwidget, SLOT (update ()));
+  connect (m_turn_left, SIGNAL (pressed ()), m_glwidget, SLOT (camera_left ()));
+  connect (m_turn_right, SIGNAL (pressed ()), m_glwidget, SLOT (camera_right ()));
 }
 
 void main_window::interpolate ()
 {
-  m_compute_pb->setDisabled (true);
-  m_compute_pb->blockSignals (true);
+  m_interpol = std::make_unique<least_squares_interpol> ();
 
-  m_interpol.set_ellipse (m_a0, m_a1, m_b0, m_b1);
+  m_compute_pb->setDisabled (true);
+
+  m_interpol->set_ellipse (m_a0, m_a1, m_b0, m_b1);
   int m = m_phi_partition->value ();
   int n = m_r_partition->value ();
-  m_interpol.set_partition (m, n);
+  m_interpol->set_partition (m, n);
   int p = m_threads->value ();
 
   msr_matrix gramm;
 
   double set_system_time  = get_monotonic_time ();
-  m_interpol.set_system (gramm);
+  m_interpol->set_system (gramm);
   set_system_time = get_monotonic_time () - set_system_time;
 
   simple_vector x_ini ((m + 1) * (n + 1));
@@ -161,7 +181,7 @@ void main_window::interpolate ()
   simple_vector rhs ((m + 1) * (n + 1));
 
   double set_rhs_time = get_monotonic_time ();
-  m_interpol.set_rhs (rhs, func);
+  m_interpol->set_rhs (rhs, func, false);
   set_rhs_time = get_monotonic_time () - set_rhs_time;
 
   std::vector<msr_thread_dqgmres_solver> handlers;
@@ -195,9 +215,8 @@ void main_window::interpolate ()
 
 
 
-   m_interpol.set_expansion_coefs (&x_out);
+   m_interpol->set_expansion_coefs (x_out);
 
-   double maxpair[] = {0, 0};
    double maxval = -1;
    double l2  = 0;
    double avg = 0;
@@ -208,17 +227,15 @@ void main_window::interpolate ()
          double phi = i * 1. / (m);
          double r = j * 1. / (n);
          double x, y;
-         m_interpol.map_to_xy (phi, r, x, y);
-         if (fabs (func (x, y)) > func_max)
-           func_max = fabs (func (x,y ));
-         double val = fabs (m_interpol.eval_phir (phi, r) - func (x, y));
+         m_interpol->map_to_xy (phi, r, x, y);
+         if (fabs (m_interpol->func_val (phi, r)) > func_max)
+           func_max = fabs (m_interpol->func_val (phi, r));
+         double val = fabs (m_interpol->eval_phir (phi, r) - m_interpol->func_val (phi, r));
          l2 += val * val;
          avg += val;
          if (val > maxval)
            {
              maxval = val;
-             maxpair[0]= x;
-             maxpair[1] = y;
            }
        }
    l2 = sqrt (l2);
@@ -230,8 +247,9 @@ void main_window::interpolate ()
    m_max_residual->setText (QString::number (maxval));
    m_avg_residual->setText (QString::number (avg));
    m_l2->setText (QString::number (l2));
-   m_compute_pb->blockSignals (false);
    m_compute_pb->setEnabled (true);
+   m_glwidget->set_interpolator (m_interpol.get ());
+   emit interpolation_done ();
 }
 
 void *main_window::computing_thread_worker(void *args)

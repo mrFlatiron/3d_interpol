@@ -3,6 +3,7 @@
 #include <QDialog>
 #include <QSize>
 #include "kernel/least_squares_interpol.h"
+#include <memory>
 //#include <QtOpenGL/QGLWidget>
 
 class QSpinBox;
@@ -28,8 +29,10 @@ private:
   QLineEdit *m_avg_residual;
   QLineEdit *m_l2;
   QPushButton *m_compute_pb;
+  QPushButton *m_turn_left;
+  QPushButton *m_turn_right;
 
-  least_squares_interpol m_interpol;
+  std::unique_ptr<least_squares_interpol> m_interpol;
   double m_a0;
   double m_a1;
 
@@ -44,6 +47,8 @@ private:
   void set_layouts ();
   void do_connects ();
   static void *computing_thread_worker (void *args);
+signals:
+  void interpolation_done ();
 private slots:
   void interpolate ();
 };

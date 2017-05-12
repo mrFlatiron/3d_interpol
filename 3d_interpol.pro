@@ -3,12 +3,12 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 QT += opengl
 TEMPLATE = app
-CONFIG += console c++11
+CONFIG += console c++14
 CONFIG -= app_bundle
 
 LIBS += -pthread
 LIBS += -lGL
-LIBS += -glew
+LIBS += -lGLU
 
 SOURCES += \
 #    src/main.cpp \

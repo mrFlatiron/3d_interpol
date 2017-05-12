@@ -94,9 +94,10 @@ void least_squares_interpol::set_system (msr_matrix &out) const
   out.ja (func_count, arr_size + 1);
 }
 
-void least_squares_interpol::set_rhs (simple_vector &out, double (*func)(const double, const double))
+void least_squares_interpol::set_rhs (simple_vector &out, double (*func)(const double, const double), const bool func_in_phir)
 {
   m_func = func;
+  m_func_in_phir = func_in_phir;
   out.resize ((m_n + 1) * (m_m + 1));
   for (int i = 0; i <= m_m; i++)
     for (int j = 0; j <= m_n; j++)
@@ -127,9 +128,22 @@ void least_squares_interpol::parallel_set_rhs (thread_handler &handler, simple_v
 
 void least_squares_interpol::map_to_phir (const double x, const double y, double &phi, double &r) const
 {
+  if (x == -2.5)
+    {
+      printf ("debug pause\n");
+    }
   double srt = sqrt (x * x / m_a1 / m_a1 + y * y / m_b1 / m_b1);
   r = (m_c * srt - 1) / (m_c - 1);
-  double phi0 = acos (x / (m_a1 * srt));
+  double phi0;
+  if (fabs (x / (m_a1 * srt) - 1) < 1e-14)
+    phi0 = 0;
+  else
+    {
+      if (fabs (x / (m_a1 * srt) + 1) < 1e-14)
+        phi0 =  M_PI;
+      else
+        phi0 = acos (x / (m_a1 * srt));
+    }
   if (y < 0)
     phi0 = 2 * M_PI - phi0;
   phi = phi0 / 2 / M_PI;
@@ -204,8 +218,8 @@ double least_squares_interpol::eval_phir (const double phi, const double r) cons
       j[1] = jt;
       ttype[0] = 2;
       ttype[1] = 3;
-      return m_expansion_coefs->at (i[0] * (m_n + 1) + j[0]) * triangle_val (il, jt, ttype[0], phi, r) +
-          m_expansion_coefs->at (i[1] * (m_n + 1) + j[1]) * triangle_val (il, jt, ttype[1], phi, r);
+      return m_expansion_coefs.at (i[0] * (m_n + 1) + j[0]) * triangle_val (il, jt, ttype[0], phi, r) +
+          m_expansion_coefs.at (i[1] * (m_n + 1) + j[1]) * triangle_val (il, jt, ttype[1], phi, r);
     }
   else
     {
@@ -241,17 +255,49 @@ double least_squares_interpol::eval_phir (const double phi, const double r) cons
   double retval = 0;
   for (int k = 0; k < 3; k++)
     {
-      retval += m_expansion_coefs->at (i[k] * (m_n + 1) + j[k]) * triangle_val (i_base, j_base,
+      retval += m_expansion_coefs.at (i[k] * (m_n + 1) + j[k]) * triangle_val (i_base, j_base,
                                                                            ttype[k],
                                                                            phi, r);
     }
   return retval;
 }
 
-void least_squares_interpol::set_expansion_coefs (const simple_vector *coefs)
+void least_squares_interpol::set_expansion_coefs (const simple_vector &coefs)
 {
   m_expansion_coefs = coefs;
 }
+
+int least_squares_interpol::m () const
+{
+  return m_m;
+}
+
+int least_squares_interpol::n () const
+{
+  return m_n;
+}
+
+double least_squares_interpol::a1 () const
+{
+  return m_a1;
+}
+
+double least_squares_interpol::a0 () const
+{
+  return m_a0;
+}
+
+double least_squares_interpol::b1 () const
+{
+  return m_b1;
+}
+
+double least_squares_interpol::b0 () const
+{
+  return m_b0;
+}
+
+
 
 
 double least_squares_interpol::diagonal_val (const int i, const int j) const
@@ -528,13 +574,9 @@ double least_squares_interpol::fancy_integral (const int k, const int l,
   double a = m_hphi / 2;
   double b = m_hr / 2;
   double c = m_c;
-  double x1, y1, x2, y2, x3, y3;
-  map_to_xy (a * k, b * l, x1, y1);
-  double f1 = m_func (x1, y1);
-  map_to_xy (a * (k + 1), b * l, x2, y2);
-  double f2 = m_func (x2, y2);
-  map_to_xy (a * k, b * (l - 1), x3, y3);
-  double f3 = m_func (x3, y3);
+  double f1 = func_val (a * k, b * l);
+  double f2 = func_val (a * (k + 1), b * l);
+  double f3 = func_val (a * k, b * (l - 1));
 
   return m_jacobian_coef * a * b / 120 / c *
 
@@ -552,13 +594,9 @@ double least_squares_interpol::turned_fancy_integral (const int k, const int l,
   double a = m_hphi / 2;
   double b = m_hr / 2;
   double c = m_c;
-  double x1, y1, x2, y2, x3, y3;
-  map_to_xy (a * k, b * l, x1, y1);
-  double f1 = m_func (x1, y1);
-  map_to_xy (a * (k - 1), b * l, x2, y2);
-  double f2 = m_func (x2, y2);
-  map_to_xy (a * k, b * (l + 1), x3, y3);
-  double f3 = m_func (x3, y3);
+  double f1 = func_val (a * k, b * l);
+  double f2 = func_val (a * (k - 1), b * l);
+  double f3 = func_val (a * k, b * (l + 1));
 
   return m_jacobian_coef * a * b / 120 / c *
        (
@@ -634,6 +672,16 @@ double least_squares_interpol::triangle_integral (const int i, const int j, cons
     }
 
   return val;
+}
+
+double least_squares_interpol::func_val (const double phi, const double r) const
+{
+  if (m_func_in_phir)
+    return m_func (phi, r);
+
+  double x, y;
+  map_to_xy (phi, r, x, y);
+  return m_func (x, y);
 }
 
 

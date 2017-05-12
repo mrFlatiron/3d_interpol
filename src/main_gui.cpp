@@ -15,7 +15,7 @@ int main (int argc, char *argv[])
   double b1 = atof (argv[3]);
   double b0 = atof (argv[4]);
 
-  main_window *window = new main_window (a1, a0, b1, b0);
+  main_window *window = new main_window (a0, a1, b0, b1);
 
   window->exec ();
 
