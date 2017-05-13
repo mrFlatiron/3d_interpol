@@ -3,7 +3,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 QT += opengl
 TEMPLATE = app
-CONFIG += console c++14
+CONFIG += console c++11
 CONFIG -= app_bundle
 
 LIBS += -pthread
@@ -25,7 +25,7 @@ SOURCES += \
     src/gui/main_window.cpp \
     src/gui/gl_plot_widget.cpp \
     src/main_gui.cpp \
-    src/test_functions/test_functions.cpp
+    src/test_functions.cpp
 
 HEADERS += \
     src/lib/containers/limited_deque.h \
@@ -41,7 +41,9 @@ HEADERS += \
     src/lib/ttime/ttime.h \
     src/gui/main_window.h \
     src/gui/gl_plot_widget.h \
-    src/test_functions/test_functions.h
+    src/test_functions.h
 
 INCLUDEPATH += src/
 INCLUDEPATH += src/lib
+
+QMAKE_CXXFLAGS = -std=c++11

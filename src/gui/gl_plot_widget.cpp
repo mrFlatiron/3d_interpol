@@ -50,8 +50,9 @@ void gl_plot_widget::resizeGL (int width, int height)
       double a1 = m_interpolator->a1 ();
       double b1 = m_interpolator->b1 ();
       max = (a1 > b1) ? 2.1 * a1 : 2.1 * b1;
+      gluPerspective (100, width/height, 0.1, max);
     }
-    gluPerspective (100, width/height, 0.1, max);
+
 }
 
 void gl_plot_widget::paintGL ()

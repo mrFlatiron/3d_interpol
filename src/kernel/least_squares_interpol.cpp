@@ -128,10 +128,6 @@ void least_squares_interpol::parallel_set_rhs (thread_handler &handler, simple_v
 
 void least_squares_interpol::map_to_phir (const double x, const double y, double &phi, double &r) const
 {
-  if (x == -2.5)
-    {
-      printf ("debug pause\n");
-    }
   double srt = sqrt (x * x / m_a1 / m_a1 + y * y / m_b1 / m_b1);
   r = (m_c * srt - 1) / (m_c - 1);
   double phi0;
@@ -147,6 +143,9 @@ void least_squares_interpol::map_to_phir (const double x, const double y, double
   if (y < 0)
     phi0 = 2 * M_PI - phi0;
   phi = phi0 / 2 / M_PI;
+  if (fabs (r) < 1e-14)
+      r = 0;
+
 }
 
 void least_squares_interpol::map_to_xy (const double phi, const double r, double &x, double &y) const

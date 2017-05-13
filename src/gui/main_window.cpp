@@ -3,7 +3,7 @@
 #include "kernel/least_squares_interpol.h"
 #include "lib/sparse_matrix/msr_thread_dqgmres_solver.h"
 #include "lib/sparse_matrix/msr_dqgmres_initializer.h"
-#include "test_functions/test_functions.h"
+#include "test_functions.h"
 #include "ttime/ttime.h"
 #include <cmath>
 #include <vector>
@@ -23,6 +23,7 @@ main_window::main_window (const double a0, const double a1, const double b0, con
   m_b0 (b0),
   m_b1 (b1)
 {
+  m_interpol = nullptr;
   create_widgets ();
   set_layouts ();
   do_connects ();
@@ -30,7 +31,8 @@ main_window::main_window (const double a0, const double a1, const double b0, con
 
 main_window::~main_window ()
 {
-
+    if (m_interpol)
+        delete m_interpol;
 }
 
 QSize main_window::sizeHint () const
@@ -160,7 +162,13 @@ void main_window::do_connects ()
 
 void main_window::interpolate ()
 {
-  m_interpol = std::make_unique<least_squares_interpol> ();
+//  if (m_interpol)
+//      delete m_interpol;
+//  else
+//      m_interpol = new least_squares_interpol;
+
+    if (!m_interpol)
+        m_interpol = new least_squares_interpol;
 
   m_compute_pb->setDisabled (true);
 
@@ -181,7 +189,7 @@ void main_window::interpolate ()
   simple_vector rhs ((m + 1) * (n + 1));
 
   double set_rhs_time = get_monotonic_time ();
-  m_interpol->set_rhs (rhs, func, false);
+  m_interpol->set_rhs (rhs, func, true);
   set_rhs_time = get_monotonic_time () - set_rhs_time;
 
   std::vector<msr_thread_dqgmres_solver> handlers;
@@ -248,7 +256,7 @@ void main_window::interpolate ()
    m_avg_residual->setText (QString::number (avg));
    m_l2->setText (QString::number (l2));
    m_compute_pb->setEnabled (true);
-   m_glwidget->set_interpolator (m_interpol.get ());
+   m_glwidget->set_interpolator (m_interpol);
    emit interpolation_done ();
 }
 

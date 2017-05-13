@@ -43,6 +43,7 @@ simple_vector &simple_vector::operator= (const simple_vector &vector)
 
 simple_vector::~simple_vector()
 {
+    if (m_data)
   delete[] m_data;
 }
 
@@ -70,7 +71,8 @@ void simple_vector::resize (const int size)
 {
   if (size != m_size && size > 0)
     {
-      delete[] m_data;
+      if (m_data)
+          delete[] m_data;
       m_data = new double[size];
     }
   m_size = size;
