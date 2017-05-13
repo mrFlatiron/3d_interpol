@@ -4,8 +4,8 @@
 
 msr_thread_handler::msr_thread_handler (const int t, const int p,
                                         pthread_barrier_t *barrier,
-                                        simple_vector &shared_buf, msr_matrix &matrix) :
-  thread_handler (t, p, barrier),
+                                        simple_vector &shared_buf, msr_matrix &matrix, const int first_t) :
+  thread_handler (t, p, barrier, first_t),
   m_matrix (matrix),
   m_shared_buf (shared_buf)
 {

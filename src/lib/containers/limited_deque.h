@@ -155,7 +155,7 @@ namespace thread_utils
                                bool &shared_flag)
   {
     T *ptr;
-    if (handler.t_id () == 0)
+    if (handler.is_first ())
       {
         ptr = deque.get_next ();
         if (!ptr)

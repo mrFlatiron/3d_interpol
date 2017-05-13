@@ -19,7 +19,7 @@ protected:
 public:
   msr_thread_handler (const int t, const int p, pthread_barrier_t *barrier,
                       simple_vector &shared_buf,
-                      msr_matrix &matrix);
+                      msr_matrix &matrix, const int first_t = 0);
   virtual ~msr_thread_handler ();
 
   int n () const;

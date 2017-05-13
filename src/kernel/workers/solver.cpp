@@ -19,7 +19,7 @@ void *test (void *args)
 
 //  handler.mult_vector (handler.matrix (), in, out);
 
-//  if (handler.t_id () == 0)
+//  if (handler.is_first ())
 //    {
 //      for (int i = 0; i < n; i++)
 //        printf ("out[%d] = %.3lf\n", i, out[i]);
@@ -27,7 +27,7 @@ void *test (void *args)
 //    }
 //  std::vector<double> res (n);
 //  thread_utils::lin_combination_1 (handler, handler.shared_ref (), out, res, in, -2);
-//  if (handler.t_id () == 0)
+//  if (handler.is_first ())
 //    {
 //      for (int i = 0; i < n; i++)
 //        printf ("res[%d] = %.3lf\n", i, res[i]);
@@ -36,14 +36,14 @@ void *test (void *args)
 
 //  handler.compute_preconditioner ();
 
-//  if (handler.t_id () == 0)
+//  if (handler.is_first ())
 //    {
 //      handler.precond ().dump ();
 //    }
 
 //  handler.apply_preconditioner ();
 
-//  if (handler.t_id () == 0)
+//  if (handler.is_first ())
 //    {
 //      handler.matrix ().dump ();
 //    }
@@ -69,7 +69,7 @@ void *solve(void *args)
 
   solver_state state =  handler.dqgmres_solve ();
 
-  if (handler.t_id () == 0)
+  if (handler.is_first ())
     {
       switch (state)
         {

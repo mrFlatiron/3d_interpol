@@ -4,7 +4,6 @@
 #include <QSize>
 #include "kernel/least_squares_interpol.h"
 #include <memory>
-//#include <QtOpenGL/QGLWidget>
 
 class QSpinBox;
 class QGLWidget;
@@ -13,6 +12,10 @@ class QLineEdit;
 class QPushButton;
 class gl_plot_widget;
 class least_squares_interpol;
+class msr_dqgmres_initializer;
+class thread_common_args;
+class thread_ret;
+class computational_components;
 
 class main_window : public QDialog
 {
@@ -33,6 +36,10 @@ private:
   QPushButton *m_turn_right;
 
   least_squares_interpol *m_interpol;
+  thread_common_args *m_common_args;
+  thread_ret *m_ret_struct;
+  computational_components *m_components;
+
   double m_a0;
   double m_a1;
 

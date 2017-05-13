@@ -110,7 +110,10 @@ void least_squares_interpol::parallel_set_rhs (thread_handler &handler, simple_v
 {
   int t = handler.t_id ();
   if (t == 0)
-    m_func = func;
+    {
+      m_func = func;
+      shared_out.resize ((m_m + 1) * (m_n + 1));
+    }
   handler.barrier_wait ();
   int begin, work;
   handler.divide_work ((m_m + 1) * (m_n + 1), begin, work);
@@ -264,6 +267,11 @@ double least_squares_interpol::eval_phir (const double phi, const double r) cons
 void least_squares_interpol::set_expansion_coefs (const simple_vector &coefs)
 {
   m_expansion_coefs = coefs;
+}
+
+simple_vector &least_squares_interpol::expansion_coefs_ref()
+{
+  return m_expansion_coefs;
 }
 
 int least_squares_interpol::m () const

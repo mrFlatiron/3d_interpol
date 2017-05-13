@@ -4,7 +4,10 @@
 #include "lib/sparse_matrix/msr_thread_dqgmres_solver.h"
 #include "lib/sparse_matrix/msr_dqgmres_initializer.h"
 #include "test_functions/test_functions.h"
+#include "computational_components.h"
 #include "ttime/ttime.h"
+#include "thread_args.h"
+#include "thread_ret.h"
 #include <cmath>
 #include <vector>
 
@@ -17,6 +20,13 @@
 #include <QVBoxLayout>
 #include <QGridLayout>
 
+class thread_args
+{
+  msr_thread_dqgmres_solver *handler;
+  computational_components *components;
+  thread_ret *ret;
+};
+
 main_window::main_window (const double a0, const double a1, const double b0, const double b1) : QDialog (),
   m_a0 (a0),
   m_a1 (a1),
@@ -24,6 +34,9 @@ main_window::main_window (const double a0, const double a1, const double b0, con
   m_b1 (b1)
 {
   m_interpol = nullptr;
+  m_common_args = nullptr;
+  m_ret_struct = nullptr;
+  m_components = new computational_components;
   create_widgets ();
   set_layouts ();
   do_connects ();
@@ -172,6 +185,11 @@ void main_window::interpolate ()
     if (!m_interpol)
         m_interpol = new least_squares_interpol;
 
+    if (m_common_args)
+      delete m_common_args;
+
+    m_common_args = new thread_common_args;
+
   m_interpol->set_ellipse (m_a0, m_a1, m_b0, m_b1);
   int m = m_phi_partition->value ();
   int n = m_r_partition->value ();
@@ -180,31 +198,21 @@ void main_window::interpolate ()
 
   msr_matrix gramm;
 
-  double set_system_time  = get_monotonic_time ();
-  m_interpol->set_system (gramm);
-  set_system_time = get_monotonic_time () - set_system_time;
-
   simple_vector x_ini ((m + 1) * (n + 1));
   simple_vector x_out ((m + 1) * (n + 1));
   simple_vector rhs ((m + 1) * (n + 1));
 
-  double set_rhs_time = get_monotonic_time ();
-  m_interpol->set_rhs (rhs, func, false);
-  set_rhs_time = get_monotonic_time () - set_rhs_time;
-
   std::vector<msr_thread_dqgmres_solver> handlers;
-  msr_dqgmres_initializer initer (p, gramm, preconditioner_type::jacobi, 5,
+  m_initializer = (1, p, gramm, preconditioner_type::jacobi, 5,
                                   300, 1e-15, x_ini, x_out, rhs);
-  for (int t = 0; t < p; t++)
+  for (int t = 1; t <= p; t++)
     handlers.push_back (msr_thread_dqgmres_solver (t, initer));
 
   pthread_t pt;
   double solve_time = get_monotonic_time ();
 
-  for (int t = 1; t < p; t++)
-    pthread_create (&pt, 0, computing_thread_worker, handlers.data () + t);
-
-  computing_thread_worker (handlers.data ());
+  for (int t = 1; t <= p; t++)
+    pthread_create (&pt, 0, computing_thread_worker, handlers.data () + t - 1);
 
   solve_time = get_monotonic_time () - solve_time;
 
@@ -272,13 +280,51 @@ void main_window::enable_pb ()
 }
 
 
-void *main_window::computing_thread_worker(void *args)
+void *main_window::computing_thread_worker (void *args_)
 {
-  msr_thread_dqgmres_solver handler (*((msr_thread_dqgmres_solver *)args));
+  thread_args *args = (thread_args*)args_;
 
-  solver_state state =  handler.dqgmres_solve ();
+  thread_handler *handler = args->handler;
 
-  if (handler.t_id () == 0)
+  computational_components *comps = args->components;
+
+  thread_ret *ret = args->ret;
+
+  if (handler->is_first ())
+    {
+      double begin = get_monotonic_time ();
+      m_interpol->set_system (comps->gramm);
+      ret->set_system_time = get_monotonic_time () - begin;
+    }
+  double set_rhs_time = get_monotonic_time ();
+  m_interpol->parallel_set_rhs (*handler, comps->rhs, func);
+  set_rhs_time = get_monotonic_time () - set_rhs_time;
+
+  if (handler->is_first ())
+    {
+      ret->set_rhs_time = set_rhs_time;
+    }
+
+  if (handler->is_first ())
+    {
+      simple_vector x_ini (comps->gramm.n ());
+      comps->initializer = new msr_dqgmres_initializer (handler->t_id (),
+                                                        handler->p (),
+                                                        comps->gramm,
+                                                        preconditioner_type::jacobi,
+                                                        5, 300, 1e-16, x_ini, comps->solution,
+                                                        comps->rhs);
+    }
+
+  handler->barrier_wait ();
+
+  comps->handlers[handler->t_id ()] = msr_thread_dqgmres_solver (handler->t_id (), *(comps->initializer));
+
+  msr_thread_dqgmres_solver solver = comps->handlers[handler->t_id ()];
+
+  solver_state state =  solver.dqgmres_solve ();
+
+  if (solver.is_first ())
     {
       switch (state)
         {
@@ -293,5 +339,12 @@ void *main_window::computing_thread_worker(void *args)
           break;
         }
     }
-    return args;
+  if (solver.is_first ())
+    {
+      pthread_mutex_lock (&(comps->cmutex));
+      pthread_cond_broadcast (&(comps->cv));
+      pthread_mutex_unlock (&(comps->cmutex));
+    }
+
+    return args_;
 }

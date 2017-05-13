@@ -3,7 +3,8 @@
 #include "containers/simple_vector.h"
 #include "containers/limited_deque.h"
 
-msr_dqgmres_initializer::msr_dqgmres_initializer (const int p,
+msr_dqgmres_initializer::msr_dqgmres_initializer (const int first_t,
+                                                  const int p,
                                                   msr_matrix &matrix,
                                                   preconditioner_type type,
                                                   const int dim,
@@ -12,6 +13,7 @@ msr_dqgmres_initializer::msr_dqgmres_initializer (const int p,
                                                   const simple_vector &x_ini,
                                                   simple_vector &x_out,
                                                   const simple_vector &rhs) :
+  m_first_t (first_t),
   m_p (p),
   m_matrix (matrix),
   m_precond (),
@@ -38,6 +40,17 @@ msr_dqgmres_initializer::msr_dqgmres_initializer (const int p,
     }
   m_x_inout = x_ini;
 }
+
+//msr_dqgmres_initializer::msr_dqgmres_initializer (const simple_vector &x_out) :
+//  m_x_inout (x_out)
+//{
+//  pthread_barrier_init (&m_barrier, 0, p);
+//  m_shared_bufs.resize (p);
+//  for (int i = 0; i < p; i++)
+//    {
+//      m_shared_bufs[i].resize (matrix.n ());
+//    }
+//}
 
 msr_dqgmres_initializer::~msr_dqgmres_initializer ()
 {
