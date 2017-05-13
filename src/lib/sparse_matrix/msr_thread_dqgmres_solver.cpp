@@ -79,7 +79,7 @@ solver_state msr_thread_dqgmres_solver::dqgmres_solve ()
 
   thread_utils::mult_vector_coef (*this, m_rhs, 1 / g1);
 
-  if (t_id () == 0)
+  if (is_first ())
     m_basis.insert (m_rhs);
 
   barrier_wait ();
@@ -89,7 +89,7 @@ solver_state msr_thread_dqgmres_solver::dqgmres_solve ()
       bool exact_solution = false;
       if (compute_hessenberg_col ())
         {
-          if (t_id () == 0)
+          if (is_first ())
             printf ("Exact solution!\n");
           exact_solution = true;
         }
@@ -101,7 +101,7 @@ solver_state msr_thread_dqgmres_solver::dqgmres_solve ()
           return solver_state::TOO_SLOW;
         }
 
-      if (t_id () == 0)
+      if (is_first ())
         *m_v1 = m_basis_derivs.get_newest ();
       barrier_wait ();
       thread_utils::lin_combination_1 (*this, m_x, **m_v1, g1);
@@ -109,7 +109,7 @@ solver_state msr_thread_dqgmres_solver::dqgmres_solve ()
         return solver_state::OK;
       double residual = fabs (g2);
 
-      if (t_id () == 0)
+      if (is_first ())
         printf ("\tit=%3d, residual = %le\n", iter, residual);
 
       if (residual < m_stop_criterion)
@@ -128,7 +128,7 @@ void msr_thread_dqgmres_solver::compute_preconditioner ()
   int begin, work;
   divide_work (n, begin, work);
 
-  if (t_id () == 0)
+  if (is_first ())
     {
       m_precond.set_n (n);
       m_precond.set_arr_size (n + 1);
@@ -222,14 +222,14 @@ int msr_thread_dqgmres_solver::compute_hessenberg_col ()
 
   mult_vector_shared_out (matrix (), *(m_basis.get_newest ()), m_v2);
 
-  if (t_id () == 0)
+  if (is_first ())
     m_basis.to_preoldest ();
 
   while (thread_utils::limited_deque_get_next<simple_vector>
          (*this, m_basis, m_v1, m_flag))
     {
       double h = thread_utils::dot_product (*this, **m_v1, m_v2, m_p_sized_buf);
-      if (t_id () == 0)
+      if (is_first ())
         m_hessenberg[h_iter] = h;
       thread_utils::lin_combination_1 (*this, m_v2, **m_v1, -h);
       h_iter++;
@@ -237,12 +237,12 @@ int msr_thread_dqgmres_solver::compute_hessenberg_col ()
 
   double norm = thread_utils::l2_norm (*this, m_v2, m_p_sized_buf);
 
-  if (t_id () == 0)
+  if (is_first ())
     m_hessenberg[h_iter] = norm;
 
   if (norm < 1e-10)
     {
-      if (t_id () == 0)
+      if (is_first ())
         m_basis.insert (m_v2);
       barrier_wait ();
       return -1;
@@ -250,7 +250,7 @@ int msr_thread_dqgmres_solver::compute_hessenberg_col ()
 
   thread_utils::mult_vector_coef (*this, m_v2, 1 / norm);
 
-  if (t_id () == 0)
+  if (is_first ())
     m_basis.insert (m_v2);
 
   barrier_wait ();
@@ -323,12 +323,12 @@ void msr_thread_dqgmres_solver::compute_turn_matrix (const int cur_iter)
 
 void msr_thread_dqgmres_solver::apply_last_turn (const int cur_iter, double &g1, double &g2)
 {
-  if (t_id () == 0)
+  if (is_first ())
     {
       double cos = m_turns.get_newest ()->at (0);
       double sin = m_turns.get_newest ()->at (1);
       int h_iter = (cur_iter <= m_dim) ? cur_iter : m_dim;
-      if (t_id () == 0)
+      if (is_first ())
         m_hessenberg[h_iter] =  cos * m_hessenberg[h_iter] + sin * m_hessenberg[h_iter + 1];
 
       g2 = -sin * g1;
@@ -351,7 +351,7 @@ void msr_thread_dqgmres_solver::apply_last_turn (const int cur_iter, double &g1,
 
 int msr_thread_dqgmres_solver::compute_basis_deriv (const int cur_iter)
 {
-  if (t_id () == 0)
+  if (is_first ())
     {
       m_basis.get_newest ();
       m_v2 = *(m_basis.get_prev ());
@@ -360,7 +360,7 @@ int msr_thread_dqgmres_solver::compute_basis_deriv (const int cur_iter)
 
   int h_iter = (cur_iter <= m_dim) ? 1 : 0;
 
-  if (t_id () == 0)
+  if (is_first ())
     m_basis_derivs.to_preoldest ();
 
   while (thread_utils::limited_deque_get_next<simple_vector >
@@ -378,7 +378,7 @@ int msr_thread_dqgmres_solver::compute_basis_deriv (const int cur_iter)
 
   thread_utils::mult_vector_coef (*this, m_v2, 1 / m_hessenberg[h_iter]);
 
-  if (t_id () == 0)
+  if (is_first ())
     m_basis_derivs.insert (m_v2);
 
   barrier_wait ();

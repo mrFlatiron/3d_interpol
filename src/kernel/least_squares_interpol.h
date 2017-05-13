@@ -42,6 +42,7 @@ public:
   double operator () (const double x, const double y) const;
   double eval_phir (const double phi, const double r) const;
   void set_expansion_coefs (const simple_vector &coefs);
+  simple_vector &expansion_coefs_ref ();
   int m () const;
   int n () const;
   double a1 () const;

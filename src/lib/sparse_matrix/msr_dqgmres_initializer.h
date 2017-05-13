@@ -7,6 +7,7 @@
 class msr_dqgmres_initializer
 {
 public:
+  const int m_first_t;
   int m_p;
   pthread_barrier_t m_barrier;
   simple_vector m_shared_buf;
@@ -28,7 +29,8 @@ public:
   simple_vector *m_v1;
   simple_vector m_v2;
 public:
-  msr_dqgmres_initializer (const int p,
+  msr_dqgmres_initializer (const int first_t,
+                           const int p,
                            msr_matrix &matrix,
                            preconditioner_type type,
                            const int dim,
@@ -38,6 +40,7 @@ public:
                            simple_vector &x_out,
                            const simple_vector &rhs
                            );
+//  msr_dqgmres_initializer (const simple_vector &x_out);
   ~msr_dqgmres_initializer ();
 };
 

@@ -2,9 +2,10 @@
 #include <cstdio>
 
 thread_handler::thread_handler (const int t_id, const int p,
-                          pthread_barrier_t *barrier) :
+                          pthread_barrier_t *barrier, const int first_t_id) :
   m_t (t_id),
   m_p (p),
+  m_first_t (first_t_id),
   m_barrier (barrier)
 {
   if (m_p <= 0)
@@ -29,6 +30,11 @@ int thread_handler::p () const
   return m_p;
 }
 
+bool thread_handler::is_first () const
+{
+  return m_first_t == m_t;
+}
+
 void thread_handler::barrier_wait ()
 {
   pthread_barrier_wait (m_barrier);
@@ -39,13 +45,15 @@ void thread_handler::divide_work (const int n, int &begin, int &work)
   work = n / m_p;
   int r = n - work * m_p;
 
-  if (m_t < r)
+  int t = m_t - m_first_t;
+
+  if (t < r)
     {
       work++;
-      begin = work * m_t;
+      begin = work * t;
     }
   else
     {
-      begin = work * m_t + r;
+      begin = work * t + r;
     }
 }
