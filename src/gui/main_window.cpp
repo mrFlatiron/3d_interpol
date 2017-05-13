@@ -3,7 +3,7 @@
 #include "kernel/least_squares_interpol.h"
 #include "lib/sparse_matrix/msr_thread_dqgmres_solver.h"
 #include "lib/sparse_matrix/msr_dqgmres_initializer.h"
-#include "test_functions.h"
+#include "test_functions/test_functions.h"
 #include "ttime/ttime.h"
 #include <cmath>
 #include <vector>
@@ -154,8 +154,10 @@ void main_window::set_layouts ()
 
 void main_window::do_connects ()
 {
-  connect (m_compute_pb, SIGNAL (clicked ()), this, SLOT (interpolate ()));
+  connect (m_compute_pb, SIGNAL (clicked ()), this, SLOT (disable_pb_and_emit ()));
+  connect (this, SIGNAL (buttons_ready ()), this, SLOT (interpolate ()));
   connect (this, SIGNAL (interpolation_done ()), m_glwidget, SLOT (update ()));
+  connect (this, SIGNAL (interpolation_done ()), this, SLOT (enable_pb ()));
   connect (m_turn_left, SIGNAL (pressed ()), m_glwidget, SLOT (camera_left ()));
   connect (m_turn_right, SIGNAL (pressed ()), m_glwidget, SLOT (camera_right ()));
 }
@@ -169,8 +171,6 @@ void main_window::interpolate ()
 
     if (!m_interpol)
         m_interpol = new least_squares_interpol;
-
-  m_compute_pb->setDisabled (true);
 
   m_interpol->set_ellipse (m_a0, m_a1, m_b0, m_b1);
   int m = m_phi_partition->value ();
@@ -189,7 +189,7 @@ void main_window::interpolate ()
   simple_vector rhs ((m + 1) * (n + 1));
 
   double set_rhs_time = get_monotonic_time ();
-  m_interpol->set_rhs (rhs, func, true);
+  m_interpol->set_rhs (rhs, func, false);
   set_rhs_time = get_monotonic_time () - set_rhs_time;
 
   std::vector<msr_thread_dqgmres_solver> handlers;
@@ -232,13 +232,12 @@ void main_window::interpolate ()
    for (int i = 0; i <= m; i++)
      for (int j = 0; j <= n; j++)
        {
-         double phi = i * 1. / (m);
-         double r = j * 1. / (n);
-         double x, y;
-         m_interpol->map_to_xy (phi, r, x, y);
-         if (fabs (m_interpol->func_val (phi, r)) > func_max)
-           func_max = fabs (m_interpol->func_val (phi, r));
-         double val = fabs (m_interpol->eval_phir (phi, r) - m_interpol->func_val (phi, r));
+         double phi = (double) i / m;
+         double r = (double) j / n;
+         double z = m_interpol->node_val (i, j);
+         if (z > func_max)
+           func_max = fabs (z);
+         double val = fabs (z - m_interpol->func_val (phi, r));
          l2 += val * val;
          avg += val;
          if (val > maxval)
@@ -255,10 +254,23 @@ void main_window::interpolate ()
    m_max_residual->setText (QString::number (maxval));
    m_avg_residual->setText (QString::number (avg));
    m_l2->setText (QString::number (l2));
-   m_compute_pb->setEnabled (true);
    m_glwidget->set_interpolator (m_interpol);
    emit interpolation_done ();
 }
+
+void main_window::disable_pb_and_emit ()
+{
+  m_compute_pb->setDisabled (true);
+  m_compute_pb->blockSignals (true);
+  emit buttons_ready ();
+}
+
+void main_window::enable_pb ()
+{
+  m_compute_pb->setEnabled (true);
+  m_compute_pb->blockSignals (false);
+}
+
 
 void *main_window::computing_thread_worker(void *args)
 {

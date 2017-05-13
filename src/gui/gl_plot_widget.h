@@ -11,7 +11,8 @@ class gl_plot_widget : public QGLWidget
   Q_OBJECT
 
 private:
-  float m_camera_angle;
+  float m_camera_angle_xy;
+  float m_camera_angle_z;
   least_squares_interpol *m_interpolator;
   GLfloat *m_vertices;
   GLushort *m_indices;

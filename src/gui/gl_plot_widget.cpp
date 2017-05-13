@@ -11,7 +11,8 @@ QSize gl_plot_widget::sizeHint () const
 
 gl_plot_widget::gl_plot_widget (QWidget *parent) : QGLWidget (parent)
 {
-  m_camera_angle = 0;
+  m_camera_angle_z = 0;
+  m_camera_angle_xy = 0;
   m_indices = nullptr;
   m_vertices = nullptr;
   m_interpolator = nullptr;
@@ -49,7 +50,7 @@ void gl_plot_widget::resizeGL (int width, int height)
     {
       double a1 = m_interpolator->a1 ();
       double b1 = m_interpolator->b1 ();
-      max = (a1 > b1) ? 2.1 * a1 : 2.1 * b1;
+      max = (a1 > b1) ? 3 * a1 : 3 * b1;
       gluPerspective (100, width/height, 0.1, max);
     }
 
@@ -81,7 +82,7 @@ void gl_plot_widget::paintGL ()
     z_eye = m_z_max + 5;
   else
     z_eye = 2 * m_z_max;
-  gluLookAt (max * cos (m_camera_angle), max * sin (m_camera_angle), z_eye, 0.0,0.0,0.0,0.0,0.0,1.0);
+  gluLookAt (max * cos (m_camera_angle_xy), max * sin (m_camera_angle_xy), z_eye, 0.0,0.0,0.0,0.0,0.0,1.0);
   GLfloat faceColor[4] = {0.9, 0.5, 0.1, 1.0};
   glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, faceColor);
   glEnableClientState(GL_VERTEX_ARRAY);
@@ -138,7 +139,7 @@ void gl_plot_widget::fill_vertices ()
       {
         double x, y, z;
         m_interpolator->map_to_xy ((double)i / m, (double)j / n, x, y);
-        z = m_interpolator->operator () (x, y);
+        z = m_interpolator->node_val (i, j);
         if (first)
           m_z_max = z;
         else if (z > m_z_max)
@@ -173,25 +174,25 @@ void gl_plot_widget::fill_vertices ()
 void gl_plot_widget::camera_update (int direction)
 {
   if (direction > 0)
-    m_camera_angle += 0.25 * 2 * M_PI;
+    m_camera_angle_xy += 0.25 * 2 * M_PI;
   else
-    m_camera_angle -= 0.25 * 2 * M_PI;
+    m_camera_angle_xy -= 0.25 * 2 * M_PI;
 
-  m_camera_angle = fmod (m_camera_angle, 2 * M_PI);
+  m_camera_angle_xy = fmod (m_camera_angle_xy, 2 * M_PI);
   update ();
 }
 
 void gl_plot_widget::camera_left ()
 {
-  m_camera_angle += 0.1;
-  m_camera_angle = fmod (m_camera_angle, 2 * M_PI);
+  m_camera_angle_xy += 0.1;
+  m_camera_angle_xy = fmod (m_camera_angle_xy, 2 * M_PI);
   update ();
 }
 
 void gl_plot_widget::camera_right ()
 {
-  m_camera_angle -= 0.1;
-  m_camera_angle = fmod (m_camera_angle, 2 * M_PI);
+  m_camera_angle_xy -= 0.1;
+  m_camera_angle_xy = fmod (m_camera_angle_xy, 2 * M_PI);
   update ();
 }
 

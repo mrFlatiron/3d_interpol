@@ -209,7 +209,7 @@ double least_squares_interpol::eval_phir (const double phi, const double r) cons
     }
 
   double check_val = (m_hr/m_hphi) * (phi - il * m_hphi) + jb * m_hr - r;
-  if (fabs (check_val) < 1e-16)
+  if (fabs (check_val) < 1e-14)
     {
       i[0] = il;
       j[0] = jb;
@@ -681,6 +681,11 @@ double least_squares_interpol::func_val (const double phi, const double r) const
   double x, y;
   map_to_xy (phi, r, x, y);
   return m_func (x, y);
+}
+
+double least_squares_interpol::node_val (const double i, const double j) const
+{
+  return m_expansion_coefs [i * (m_n + 1) + j];
 }
 
 

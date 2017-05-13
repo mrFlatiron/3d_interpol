@@ -49,6 +49,7 @@ public:
   double b1 () const;
   double b0 () const;
   double func_val (const double phi, const double r) const;
+  double node_val (const double i, const double j) const;
 private:
 
   double diagonal_val (const int i, const int j) const;

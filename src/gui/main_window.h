@@ -32,7 +32,7 @@ private:
   QPushButton *m_turn_left;
   QPushButton *m_turn_right;
 
-  std::unique_ptr<least_squares_interpol> m_interpol;
+  least_squares_interpol *m_interpol;
   double m_a0;
   double m_a1;
 
@@ -49,8 +49,11 @@ private:
   static void *computing_thread_worker (void *args);
 signals:
   void interpolation_done ();
+  void buttons_ready ();
 private slots:
   void interpolate ();
+  void disable_pb_and_emit ();
+  void enable_pb ();
 };
 
 #endif // MAIN_WINDOW_H
