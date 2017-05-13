@@ -78,7 +78,7 @@ void gl_plot_widget::paintGL ()
   double max = (a1 > b1) ? 1.5 * a1 : 1.5 * b1;
   double z_eye;
   if (m_z_max < 2)
-    z_eye = m_z_max + 2;
+    z_eye = m_z_max + 5;
   else
     z_eye = 2 * m_z_max;
   gluLookAt (max * cos (m_camera_angle), max * sin (m_camera_angle), z_eye, 0.0,0.0,0.0,0.0,0.0,1.0);
