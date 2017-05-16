@@ -124,17 +124,19 @@ void main_window::set_layouts ()
         glo_1->addWidget (m_threads, 2, 1);
         m_threads->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-        glo_1->addWidget (new QLabel ("RHS set time, sec:", this), 3, 0);
-        glo_1->addWidget (m_rhs_time, 3, 1);
+        glo_1->addWidget (new QLabel ("Matrix set time, sec:", this), 3, 0);
+        glo_1->addWidget (m_matrix_time, 3, 1);
+        m_matrix_time->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+
+        glo_1->addWidget (new QLabel ("RHS set time, sec:", this), 4, 0);
+        glo_1->addWidget (m_rhs_time, 4, 1);
         m_rhs_time->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-        glo_1->addWidget (new QLabel ("System solved in, sec:", this), 4, 0);
-        glo_1->addWidget (m_solution_time, 4, 1);
+        glo_1->addWidget (new QLabel ("System solved in, sec:", this), 5, 0);
+        glo_1->addWidget (m_solution_time, 5, 1);
         m_solution_time->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-        glo_1->addWidget (new QLabel ("Matrix set time, sec:", this), 5, 0);
-        glo_1->addWidget (m_matrix_time, 5, 1);
-        m_matrix_time->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+
 
         glo_1->addWidget (new QLabel ("Grid max residual", this), 6, 0);
         glo_1->addWidget (m_max_residual, 6, 1);
@@ -241,17 +243,11 @@ void main_window::check_if_done ()
 {
   int progress = 0;
   if (m_ret_struct.set_system_done)
-    {
-      progress++;
-    }
+    progress++;
   if (m_ret_struct.set_rhs_done)
-    {
-      progress++;
-    }
+    progress++;
   if (m_ret_struct.system_solved)
-    {
-      progress++;
-    }
+    progress++;
 
   m_progress_bar->setValue (progress);
 
@@ -321,6 +317,7 @@ void *main_window::computing_thread_worker (void *args_)
       ret->set_system_done = true;
     }
   handler.barrier_wait ();
+
   double set_rhs_time = get_monotonic_time ();
   interpol->parallel_set_rhs (handler, comps->rhs, func, false);
   set_rhs_time = get_monotonic_time () - set_rhs_time;

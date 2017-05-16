@@ -6,6 +6,14 @@
 class QColor;
 class least_squares_interpol;
 
+struct interpol_meta
+{
+  double a1;
+  double b1;
+  int m;
+  int n;
+};
+
 class gl_plot_widget : public QGLWidget
 {
   Q_OBJECT
@@ -18,6 +26,7 @@ private:
   least_squares_interpol *m_interpolator;
   GLfloat *m_vertices;
   int *m_indices;
+  GLfloat *m_colors;
   double m_x_max = 1;
   double m_x_min = -1;
   double m_y_max = 1;
@@ -25,6 +34,8 @@ private:
   double m_z_max = 1;
   double m_z_min = -1;
   bool m_vertices_uptodate;
+  interpol_meta m_interpol_meta;
+  bool m_interpol_meta_valid;
 public:
   gl_plot_widget (QWidget *parent = nullptr);
   ~gl_plot_widget ();
@@ -37,6 +48,7 @@ public:
   void keyPressEvent (QKeyEvent *event);
 private:
   void fill_vertices ();
+  void fill_colors ();
   void update_bounds (const double x, const double y, const double z);
 public slots:
   void camera_update (int direction);

@@ -15,6 +15,7 @@ gl_plot_widget::gl_plot_widget (QWidget *parent) : QGLWidget (parent)
   m_camera_angle_xy = 0;
   m_indices = nullptr;
   m_vertices = nullptr;
+  m_colors = nullptr;
   m_interpolator = nullptr;
   m_vertices_uptodate = false;
 }
@@ -25,6 +26,8 @@ gl_plot_widget::~gl_plot_widget ()
     delete[] m_indices;
   if (m_vertices)
     delete[] m_vertices;
+  if (m_colors)
+    delete[] m_colors;
 }
 
 void gl_plot_widget::initializeGL ()
@@ -32,10 +35,6 @@ void gl_plot_widget::initializeGL ()
   QColor qDark = QColor::fromCmykF(0.1,0.1,0.1,0.05);
   qglClearColor(qDark);
   glEnable(GL_DEPTH_TEST);
-  glEnable(GL_LIGHTING);
-  glEnable(GL_LIGHT0);
-  static GLfloat lightPosition[4] = {0.0, 0.0, 1, 1.0};
-  glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
 }
 
 void gl_plot_widget::resizeGL (int width, int height)
@@ -65,26 +64,12 @@ void gl_plot_widget::paintGL ()
   if (!m_interpolator)
     return;
 
-  int m = m_interpolator->m ();
-  int n = m_interpolator->n ();
-  double a1 = m_interpolator->a1 ();
-  double b1 = m_interpolator->b1 ();
-
-
-
+  int m = m_interpol_meta.m;
+  int n = m_interpol_meta.n;
 
   glLineWidth(2.0f);
   glColor3f(0.0,0.0,1.0);
   fill_vertices ();
-
-  double max = (a1 > b1) ?  a1 : b1;
-  max = (max > m_z_max) ? max : m_z_max;
-  double z_eye;
-
-  if (m_z_max < 2)
-    z_eye = m_z_max + 5;
-  else
-    z_eye = 2 * m_z_max;
 
   double r = pow ((m_x_max - m_x_min), 2) +
              pow ((m_y_max - m_y_min), 2) +
@@ -94,7 +79,7 @@ void gl_plot_widget::paintGL ()
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity ();
-  glOrtho (1.1 * m_x_min, 1.1 * m_x_max, 1.1 * m_y_min , 1.1 * m_y_max, -1 - r, r + 1);
+  glOrtho (1.1 * m_x_min, 1.1 * m_x_max, 2 * m_y_min , 2 * m_y_max, -1 - r, r + 1);
 
 
   glMatrixMode(GL_MODELVIEW);
@@ -103,12 +88,11 @@ void gl_plot_widget::paintGL ()
 //  gluLookAt (r + 2, r + 2, r + 2, -r, -r, -r, 0, 0, 1);
 //  max = sqrt (a1 * a1 + b1 * b1);
 //  gluLookAt (r * cos (m_camera_angle_xy), r * sin (m_camera_angle_xy), r, 0.0,0.0,0.0,0.0,0.0,1.0);
-  gluLookAt (sqrt (0.2) * cos (m_camera_angle_xy), sqrt (0.2) * sin (m_camera_angle_xy), 0.1, 0, 0, 0, 0, 0, 1);
+  gluLookAt (sqrt (0.2) * cos (m_camera_angle_xy), sqrt (0.2) * sin (m_camera_angle_xy), 2, 0, 0, 0, 0, 0, 1);
 
 
 
 
-  glDisable(GL_LIGHTING);
   glColor3f(1.0,0.0,0.0);
   glBegin(GL_LINES);
       glVertex3f(m_x_min, m_y_min, m_z_min);
@@ -120,13 +104,12 @@ void gl_plot_widget::paintGL ()
       glVertex3f(m_x_min, m_y_min, m_z_min);
       glVertex3f(m_x_min, m_y_min, m_z_max);
   glEnd();
-  glEnable(GL_LIGHTING);
 
-  GLfloat light_pos[] = {r, r, r, 1};
-  glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 
-  GLfloat faceColor[4] = {0.9, 0.5, 0.1, 1.0};
-  glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, faceColor);
+
+
+//  GLfloat faceColor[4] = {0.9, 0.5, 0.1, 1.0};
+//  glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, faceColor);
   glEnableClientState(GL_VERTEX_ARRAY);
   glVertexPointer(3,GL_FLOAT, 0 , m_vertices);
 
@@ -139,7 +122,11 @@ void gl_plot_widget::paintGL ()
   glBegin (GL_TRIANGLES);
   {
     for (int i = 0; i < 6 * m * n; i++)
-      glArrayElement (m_indices[i]);
+      {
+        int index = m_indices[i];
+        glColor3f (m_colors[3 * index], m_colors[3 * index + 1], m_colors[3 * index + 2]);
+        glArrayElement (m_indices[i]);
+      }
   }
   glEnd ();
   glDisable(GL_POLYGON_OFFSET_FILL);
@@ -147,7 +134,7 @@ void gl_plot_widget::paintGL ()
   if (m <= 20 && n < 20)
     {
       glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-      glDisable(GL_LIGHTING);
+
       glLineWidth(1.0f);
       glColor3f(0.0,0.2,0.0);
       glBegin (GL_TRIANGLES);
@@ -156,7 +143,7 @@ void gl_plot_widget::paintGL ()
           glArrayElement (m_indices[i]);
       }
       glEnd ();
-      glEnable(GL_LIGHTING);
+
     }
 
 
@@ -174,6 +161,11 @@ void gl_plot_widget::set_interpolator (least_squares_interpol *interpolator)
 {
   m_interpolator = interpolator;
   m_vertices_uptodate = false;
+  m_interpol_meta_valid = true;
+  m_interpol_meta.a1 = m_interpolator->a1 ();
+  m_interpol_meta.b1 = m_interpolator->b1 ();
+  m_interpol_meta.m = m_interpolator->m ();
+  m_interpol_meta.n = m_interpolator->n ();
 }
 
 void gl_plot_widget::fill_vertices ()
@@ -181,14 +173,19 @@ void gl_plot_widget::fill_vertices ()
   if (m_vertices_uptodate)
     return;
   m_full_packs = 0;
-  int m = m_interpolator->m ();
-  int n = m_interpolator->n ();
+  int m = m_interpol_meta.m;
+  int n = m_interpol_meta.n;
   if (m_vertices)
     delete[] m_vertices;
   if (m_indices)
     delete[] m_indices;
+  if (m_colors)
+    delete[] m_colors;
+
 
   m_vertices = new GLfloat[3 * (m + 1) * (n + 1)];
+  m_colors = new GLfloat[3 * (m + 1) * (n + 1)];
+
   int iter = 0;
 
   for (int i = 0; i <= m; i++)
@@ -225,7 +222,25 @@ void gl_plot_widget::fill_vertices ()
             iter++;
           }
       }
+  fill_colors ();
   m_vertices_uptodate = true;
+}
+
+void gl_plot_widget::fill_colors ()
+{
+  int vert_count = (m_interpol_meta.m + 1) * (m_interpol_meta.n + 1);
+  for (int i = 0; i < vert_count; i++)
+    {
+      double x = m_vertices[3 * i];
+      double y = m_vertices[3 * i + 1];
+      double z = m_vertices[3 * i + 2];
+      GLfloat red = (x - m_x_min)    / (m_x_max - m_x_min);
+      GLfloat green = (y - m_y_min) / (m_y_max - m_y_min);
+      GLfloat blue = (z - m_z_min) / (m_z_max - m_z_min);
+      m_colors[3 * i] = red;
+      m_colors[3 * i + 1] = green;
+      m_colors[3 * i + 2] = blue;
+    }
 }
 
 void gl_plot_widget::update_bounds (const double x, const double y, const double z)
