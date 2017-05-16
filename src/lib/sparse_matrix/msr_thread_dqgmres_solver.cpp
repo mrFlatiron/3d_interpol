@@ -8,7 +8,7 @@
 msr_thread_dqgmres_solver::msr_thread_dqgmres_solver (const int t,
                                                       msr_dqgmres_initializer &initializer) :
   msr_thread_handler (t, initializer.m_p, &(initializer.m_barrier),
-                      initializer.m_shared_bufs[t], initializer.m_matrix),
+                      initializer.m_shared_buf, initializer.m_matrix),
   m_precond (initializer.m_precond),
   m_precond_type (initializer.m_precond_type),
   m_dim (initializer.m_dim),

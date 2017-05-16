@@ -37,14 +37,43 @@ void thread_utils::lin_combination_1 (thread_handler &handler,
                                       const double coef)
 {
   const int n = shared_inout.size ();
-  int begin, work;
-  handler.divide_work (n, begin, work);
+  int i1, work;
+  handler.divide_work (n, i1, work);
 
-  for (int i = begin; i < begin + work; i++)
+  simple_vector loc_inout (work);
+
+  for (int i = 0; i < work; i++)
+    loc_inout[i] = shared_inout[i + i1];
+
+  simple_vector loc_add (work);
+
+  for (int i = 0; i < work; i++)
+    loc_add[i] = add[i + i1];
+
+
+  int i;
+  for (i = 0; i < work - 8; i += 8)
     {
-      shared_inout[i] += add[i] * coef;
+      loc_inout[i    ] += loc_add[i    ] * coef;
+      loc_inout[i + 1] += loc_add[i + 1] * coef;
+      loc_inout[i + 2] += loc_add[i + 2] * coef;
+      loc_inout[i + 3] += loc_add[i + 3] * coef;
+      loc_inout[i + 4] += loc_add[i + 4] * coef;
+      loc_inout[i + 5] += loc_add[i + 5] * coef;
+      loc_inout[i + 6] += loc_add[i + 6] * coef;
+      loc_inout[i + 7] += loc_add[i + 7] * coef;
     }
+  for (; i < work; i++)
+    {
+      loc_inout[i] += loc_add[i] * coef;
+    }
+
   handler.barrier_wait ();
+
+  for (int i = i1; i < i1 + work; i++)
+    shared_inout[i] = loc_inout[i - i1];
+
+
 }
 
 double thread_utils::l2_norm (thread_handler &handler, const simple_vector &vect,

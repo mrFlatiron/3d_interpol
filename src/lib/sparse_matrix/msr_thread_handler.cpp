@@ -87,15 +87,42 @@ void msr_thread_handler::mult_vector_shared_out (const msr_matrix &shared_matrix
 
   divide_work (n, i1, work);
 
+  simple_vector loc_out (work);
+  simple_vector loc_in (n);
+
+  for (int i = 0; i < n; i++)
+    loc_in[i] = in[i];
+
+  int i = i1;
+  int loc_i = 0;
+  for (; loc_i < work - 8; loc_i += 8, i += 8)
+    {
+      loc_out[loc_i] = shared_matrix.aa (i) * loc_in[i];
+      loc_out[loc_i + 1] = shared_matrix.aa (i + 1) * loc_in[i + 1];
+      loc_out[loc_i + 2] = shared_matrix.aa (i + 2) * loc_in[i + 2];
+      loc_out[loc_i + 3] = shared_matrix.aa (i + 3) * loc_in[i + 3];
+      loc_out[loc_i + 4] = shared_matrix.aa (i + 4) * loc_in[i + 4];
+      loc_out[loc_i + 5] = shared_matrix.aa (i + 5) * loc_in[i + 5];
+      loc_out[loc_i + 6] = shared_matrix.aa (i + 6) * loc_in[i + 6];
+      loc_out[loc_i + 7] = shared_matrix.aa (i + 7) * loc_in[i + 7];
+    }
+  for (; loc_i < work; loc_i++, i++)
+    loc_out[loc_i] = shared_matrix.aa (i) * loc_in[i];
+
+
   for (int i = i1; i < i1 + work; i++)
     {
       double s = 0;
       for (int ja_iter = shared_matrix.ja (i); ja_iter < shared_matrix.ja (i + 1); ja_iter++)
-        s += shared_matrix.aa (ja_iter) * in[shared_matrix.ja (ja_iter)];
+        s += shared_matrix.aa (ja_iter) * loc_in[shared_matrix.ja (ja_iter)];
 
-      s += shared_matrix.aa (i) * in[i];
-      shared_out[i] = s;
+      loc_out[i - i1] += s;
     }
+
+  for (int i = i1; i < i1 + work; i++)
+    shared_out[i]  = loc_out[i - i1];
+
+
 
   barrier_wait ();
 }

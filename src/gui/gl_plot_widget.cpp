@@ -41,27 +41,25 @@ void gl_plot_widget::initializeGL ()
 void gl_plot_widget::resizeGL (int width, int height)
 {
   glViewport(0,0,width,height);
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  double max;
-  if (!m_interpolator)
-    gluPerspective(100,width/height,0.1,15);
-  else
-    {
-      double a1 = m_interpolator->a1 ();
-      double b1 = m_interpolator->b1 ();
-      max = (a1 > b1) ? 3 * a1 : 3 * b1;
-      gluPerspective (100, width/height, 0.1, max);
-    }
+//  glMatrixMode(GL_PROJECTION);
+//  glLoadIdentity();
+//  double max;
+//  if (!m_interpolator)
+//    gluPerspective(100,width/height,0.1,15);
+//  else
+//    {
+//      double a1 = m_interpolator->a1 ();
+//      double b1 = m_interpolator->b1 ();
+//      max = (a1 > b1) ? 3 * a1 : 3 * b1;
+//      gluPerspective (100, width/height, 0.1, 100);
+//    }
 
 }
 
 void gl_plot_widget::paintGL ()
 {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glMatrixMode(GL_MODELVIEW);
 
-  glLoadIdentity();
 
 
   if (!m_interpolator)
@@ -73,16 +71,50 @@ void gl_plot_widget::paintGL ()
   double b1 = m_interpolator->b1 ();
 
 
+
+
   glLineWidth(2.0f);
   glColor3f(0.0,0.0,1.0);
   fill_vertices ();
-  double max = (a1 > b1) ? 1.5 * a1 : 1.5 * b1;
+  double max = (a1 > b1) ?  a1 : b1;
+  max = (max > m_z_max) ? max : m_z_max;
   double z_eye;
+
   if (m_z_max < 2)
     z_eye = m_z_max + 5;
   else
     z_eye = 2 * m_z_max;
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity ();
+  glOrtho (-max, max, -2 * max,  2 * max, 5 * max, -5 * max);
+
+
+  glMatrixMode(GL_MODELVIEW);
+
+  glLoadIdentity();
+  max = sqrt (a1 * a1 + b1 * b1);
   gluLookAt (max * cos (m_camera_angle_xy), max * sin (m_camera_angle_xy), z_eye, 0.0,0.0,0.0,0.0,0.0,1.0);
+
+
+
+
+//  glDisable(GL_LIGHTING);
+//  glColor3f(0.0,0.0,1.0);
+//  glBegin(GL_LINES);
+//      glVertex3f(0.0, 0.0,0.0);
+//      glVertex3f(a1,  0.0,0.0);
+//      glVertex3f(0.0,0.0,0.0);
+//      glVertex3f(0.0,b1, 0.0);
+//      double z_axis = 1;
+//      if (m_z_max > z_axis)
+//        z_axis = m_z_max;
+//      glVertex3f(0.0,0.0,0.0);
+
+//      glVertex3f(0.0,0.0,z_axis);
+//  glEnd();
+//  glEnable(GL_LIGHTING);
+
   GLfloat faceColor[4] = {0.9, 0.5, 0.1, 1.0};
   glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, faceColor);
   glEnableClientState(GL_VERTEX_ARRAY);
@@ -96,12 +128,15 @@ void gl_plot_widget::paintGL ()
 
   glDisable(GL_POLYGON_OFFSET_FILL);
 
-  glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-  glDisable(GL_LIGHTING);
-  glLineWidth(1.0f);
-  glColor3f(0.0,0.2,0.0);
-  glDrawElements(GL_TRIANGLES, 6 * m * n, GL_UNSIGNED_SHORT, m_indices);
-  glEnable(GL_LIGHTING);
+  if (m <= 20 && n < 20)
+    {
+      glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+      glDisable(GL_LIGHTING);
+      glLineWidth(1.0f);
+      glColor3f(0.0,0.2,0.0);
+      glDrawElements(GL_TRIANGLES, 6 * m * n, GL_UNSIGNED_SHORT, m_indices);
+      glEnable(GL_LIGHTING);
+    }
 
 
   glDisableClientState(GL_VERTEX_ARRAY);
@@ -134,21 +169,38 @@ void gl_plot_widget::fill_vertices ()
   m_vertices = new GLfloat[3 * (m + 1) * (n + 1)];
   bool first = true;
   int iter = 0;
+  int ur = 0;
+  int ul = 0;
+  int bl = 0;
+  int br = 0;
   for (int i = 0; i <= m; i++)
     for (int j = 0; j <= n; j++)
       {
         double x, y, z;
         m_interpolator->map_to_xy ((double)i / m, (double)j / n, x, y);
+        if (x * x + y * y > 16 && x * x + y * y < 4)
+          {
+            printf ("debug assert");
+          }
+        if (x > 0 && y > 0) ur++;
+        if (x < 0 && y > 0) ul++;
+        if (x < 0 && y < 0) bl++;
+        if (x > 0 && y < 0) br++;
         z = m_interpolator->node_val (i, j);
         if (first)
-          m_z_max = z;
-        else if (z > m_z_max)
-          m_z_max = z;
+          m_z_max = fabs (z);
+        else if (fabs (z) > m_z_max)
+          m_z_max = fabs (z);
         m_vertices[3 * iter] = (GLfloat)x;
         m_vertices[3 * iter + 1] = (GLfloat)y;
         m_vertices[3 * iter + 2] = (GLfloat)z;
         iter++;
       }
+
+  printf ("ur = %d\n"
+          "ul = %d\n"
+          "bl = %d\n"
+          "br = %d\n", ur, ul, bl, br);
 
   m_indices = new GLushort[6 * m * n];
   iter = 0;

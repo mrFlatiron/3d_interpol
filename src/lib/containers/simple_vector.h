@@ -7,8 +7,10 @@ class simple_vector
 private:
   double *m_data;
   int m_size;
+  bool m_is_owner = true;
 public:
   simple_vector ();
+  simple_vector (double *data, const int size);
   simple_vector (const int size);
   simple_vector (const simple_vector &vect);
   simple_vector &operator= (const simple_vector &vector);

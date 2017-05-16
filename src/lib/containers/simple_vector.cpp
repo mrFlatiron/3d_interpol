@@ -6,6 +6,13 @@ simple_vector::simple_vector()
   m_size = 0;
 }
 
+simple_vector::simple_vector (double *data, const int size)
+{
+  m_data = data;
+  m_size = size;
+  m_is_owner = false;
+}
+
 simple_vector::simple_vector (const int size)
 {
   if (size < 0)
@@ -43,7 +50,7 @@ simple_vector &simple_vector::operator= (const simple_vector &vector)
 
 simple_vector::~simple_vector()
 {
-    if (m_data)
+    if (m_data && m_is_owner)
   delete[] m_data;
 }
 
@@ -69,6 +76,12 @@ double *simple_vector::data () const
 
 void simple_vector::resize (const int size)
 {
+  if (!m_is_owner)
+    {
+      m_size = size;
+      return;
+    }
+
   if (size != m_size && size > 0)
     {
       if (m_data)

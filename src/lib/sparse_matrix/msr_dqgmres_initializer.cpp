@@ -31,11 +31,7 @@ msr_dqgmres_initializer::msr_dqgmres_initializer (const int p,
   m_v2 (matrix.n ())
 {
   pthread_barrier_init (&m_barrier, 0, p);
-  m_shared_bufs.resize (p);
-  for (int i = 0; i < p; i++)
-    {
-      m_shared_bufs[i].resize (matrix.n ());
-    }
+  m_shared_buf.resize (matrix.n ());
   m_x_inout = x_ini;
 }
 

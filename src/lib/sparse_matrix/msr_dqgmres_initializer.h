@@ -9,7 +9,7 @@ class msr_dqgmres_initializer
 public:
   int m_p;
   pthread_barrier_t m_barrier;
-  std::vector<simple_vector> m_shared_bufs;
+  simple_vector m_shared_buf;
   msr_matrix m_matrix;
   msr_matrix m_precond; //shared precond
   preconditioner_type m_precond_type;
