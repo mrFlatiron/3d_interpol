@@ -13,7 +13,6 @@ public:
   simple_vector rhs;
   simple_vector solution;
   msr_dqgmres_initializer *initializer;
-  bool is_done = true;
   pthread_barrier_t barrier;
 public:
   computational_components ();

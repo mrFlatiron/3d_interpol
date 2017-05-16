@@ -11,11 +11,13 @@ class gl_plot_widget : public QGLWidget
   Q_OBJECT
 
 private:
+  static const int max_vertex_pack = 65532;
+  int m_full_packs = 0;
   float m_camera_angle_xy;
   float m_camera_angle_z;
   least_squares_interpol *m_interpolator;
   GLfloat *m_vertices;
-  GLushort *m_indices;
+  int *m_indices;
   double m_x_max = 1;
   double m_x_min = -1;
   double m_y_max = 1;

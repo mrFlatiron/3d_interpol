@@ -1,4 +1,6 @@
 #include "simple_vector.h"
+#include <cstdlib>
+#include <cstdio>
 
 simple_vector::simple_vector()
 {
@@ -20,6 +22,11 @@ simple_vector::simple_vector (const int size)
   m_size = size;
   if (size > 0)
     m_data = new double[size];
+  if (!m_data)
+    {
+      fprintf (stderr, "Allocation failed\n");
+      std::abort ();
+    }
   for (int i = 0; i < size; i++)
     m_data[i] = 0;
 }
@@ -29,6 +36,11 @@ simple_vector::simple_vector (const simple_vector &vect)
   m_size = vect.size ();
   if (m_size > 0)
     m_data = new double[m_size];
+  if (!m_data)
+    {
+      fprintf (stderr, "Allocation failed\n");
+      std::abort ();
+    }
 
   for (int i = 0; i < m_size; i++)
     m_data[i] = vect[i];
@@ -40,6 +52,11 @@ simple_vector &simple_vector::operator= (const simple_vector &vector)
     {
       delete[] m_data;
       m_data = new double[vector.size ()];
+      if (!m_data)
+        {
+          fprintf (stderr, "Allocation failed\n");
+          std::abort ();
+        }
     }
   m_size = vector.size ();
   for (int i = 0; i < m_size; i++)
@@ -87,6 +104,11 @@ void simple_vector::resize (const int size)
       if (m_data)
           delete[] m_data;
       m_data = new double[size];
+      if (!m_data)
+        {
+          fprintf (stderr, "Allocation failed\n");
+          std::abort ();
+        }
     }
   m_size = size;
 }

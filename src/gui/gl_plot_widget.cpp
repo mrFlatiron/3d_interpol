@@ -94,7 +94,7 @@ void gl_plot_widget::paintGL ()
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity ();
-  glOrtho ( -1 + m_x_min, m_x_max + 1, -1 + m_y_min , m_y_max + 1, -1 - r, r + 1);
+  glOrtho (1.1 * m_x_min, 1.1 * m_x_max, 1.1 * m_y_min , 1.1 * m_y_max, -1 - r, r + 1);
 
 
   glMatrixMode(GL_MODELVIEW);
@@ -134,8 +134,14 @@ void gl_plot_widget::paintGL ()
   glPolygonOffset(1,1);
 
   glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
-  glDrawElements(GL_TRIANGLES, 6 * m * n, GL_UNSIGNED_SHORT, m_indices);
+//  glDrawElements(GL_TRIANGLES, 6 * m * n, GL_UNSIGNED_SHORT, m_indices);
 
+  glBegin (GL_TRIANGLES);
+  {
+    for (int i = 0; i < 6 * m * n; i++)
+      glArrayElement (m_indices[i]);
+  }
+  glEnd ();
   glDisable(GL_POLYGON_OFFSET_FILL);
 
   if (m <= 20 && n < 20)
@@ -144,7 +150,12 @@ void gl_plot_widget::paintGL ()
       glDisable(GL_LIGHTING);
       glLineWidth(1.0f);
       glColor3f(0.0,0.2,0.0);
-      glDrawElements(GL_TRIANGLES, 6 * m * n, GL_UNSIGNED_SHORT, m_indices);
+      glBegin (GL_TRIANGLES);
+      {
+        for (int i = 0; i < 6 * m * n; i++)
+          glArrayElement (m_indices[i]);
+      }
+      glEnd ();
       glEnable(GL_LIGHTING);
     }
 
@@ -169,6 +180,7 @@ void gl_plot_widget::fill_vertices ()
 {
   if (m_vertices_uptodate)
     return;
+  m_full_packs = 0;
   int m = m_interpolator->m ();
   int n = m_interpolator->n ();
   if (m_vertices)
@@ -195,7 +207,7 @@ void gl_plot_widget::fill_vertices ()
         iter++;
       }
 
-  m_indices = new GLushort[6 * m * n];
+  m_indices = new int[6 * m * n];
   iter = 0;
   for (int i = 0; i < m; i++)
     for (int j = 0; j < n; j++)

@@ -13,6 +13,7 @@ class QLabel;
 class QLineEdit;
 class QPushButton;
 class QTimer;
+class QProgressBar;
 class gl_plot_widget;
 class least_squares_interpol;
 class msr_dqgmres_initializer;
@@ -37,6 +38,7 @@ private:
   QPushButton *m_compute_pb;
   QPushButton *m_turn_left;
   QPushButton *m_turn_right;
+  QProgressBar *m_progress_bar;
 
   least_squares_interpol *m_interpol;
   thread_ret m_ret_struct;

@@ -19,6 +19,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QGridLayout>
+#include <QProgressBar>
 
 
 
@@ -95,6 +96,10 @@ void main_window::create_widgets ()
   m_turn_right = new QPushButton (this);
   m_turn_right->setText ("->");
   m_turn_right->setAutoRepeat (true);
+
+  m_progress_bar = new QProgressBar (this);
+  m_progress_bar->setRange (0, 3);
+  m_progress_bar->setValue (0);
 }
 
 void main_window::set_layouts ()
@@ -153,8 +158,13 @@ void main_window::set_layouts ()
     }
     vlo_1->addLayout (hlo_1);
     vlo_1->setAlignment (hlo_1, Qt::AlignTop);
-    vlo_1->addWidget (m_compute_pb);
-    vlo_1->setAlignment (m_compute_pb, Qt::AlignCenter);
+    QHBoxLayout *hlo_2 = new QHBoxLayout;
+    {
+      hlo_2->addWidget (m_compute_pb);
+      hlo_2->setAlignment (m_compute_pb, Qt::AlignLeft);
+      hlo_2->addWidget (m_progress_bar, Qt::AlignRight);
+    }
+    vlo_1->addLayout (hlo_2);
   }
   setLayout (vlo_1);
 }
@@ -204,7 +214,7 @@ void main_window::interpolate ()
       m_thread_args[i - 1].interpol = m_interpol;
     }
 
-  m_components.is_done = false;
+  m_ret_struct.init ();
 
   m_compute_pb->setDisabled (true);
 
@@ -229,7 +239,24 @@ void main_window::enable_pb ()
 
 void main_window::check_if_done ()
 {
-  if (!m_components.is_done)
+  int progress = 0;
+  if (m_ret_struct.set_system_done)
+    {
+      progress++;
+    }
+  if (m_ret_struct.set_rhs_done)
+    {
+      progress++;
+    }
+  if (m_ret_struct.system_solved)
+    {
+      progress++;
+    }
+
+  m_progress_bar->setValue (progress);
+
+
+  if (!m_ret_struct.system_solved)
     {
       m_timer->start (100);
     }
@@ -291,6 +318,7 @@ void *main_window::computing_thread_worker (void *args_)
       double begin = get_monotonic_time ();
       interpol->set_system (comps->gramm);
       ret->set_system_time = get_monotonic_time () - begin;
+      ret->set_system_done = true;
     }
   handler.barrier_wait ();
   double set_rhs_time = get_monotonic_time ();
@@ -300,6 +328,7 @@ void *main_window::computing_thread_worker (void *args_)
   if (handler.is_first ())
     {
       ret->set_rhs_time = set_rhs_time;
+      ret->set_rhs_done = true;
     }
 
   if (handler.is_first ())
@@ -341,7 +370,7 @@ void *main_window::computing_thread_worker (void *args_)
     }
   if (handler.is_first ())
     {
-      comps->is_done = true;
+      ret->system_solved = true;
       delete comps->initializer;
     }
 
