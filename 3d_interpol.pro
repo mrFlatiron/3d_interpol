@@ -46,4 +46,4 @@ HEADERS += \
 INCLUDEPATH += src/
 INCLUDEPATH += src/lib
 
-QMAKE_CXXFLAGS = -std=c++11
+QMAKE_CXXFLAGS += -std=c++11 --fast-math
