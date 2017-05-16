@@ -25,7 +25,10 @@ SOURCES += \
     src/gui/main_window.cpp \
     src/gui/gl_plot_widget.cpp \
     src/main_gui.cpp \
-    src/test_functions/test_functions.cpp
+    src/test_functions/test_functions.cpp \
+    src/gui/computational_components.cpp \
+    src/gui/thread_args.cpp \
+    src/gui/thread_ret.cpp
 
 HEADERS += \
     src/lib/containers/limited_deque.h \
@@ -41,7 +44,10 @@ HEADERS += \
     src/lib/ttime/ttime.h \
     src/gui/main_window.h \
     src/gui/gl_plot_widget.h \
-    src/test_functions/test_functions.h
+    src/test_functions/test_functions.h \
+    src/gui/computational_components.h \
+    src/gui/thread_args.h \
+    src/gui/thread_ret.h
 
 INCLUDEPATH += src/
 INCLUDEPATH += src/lib

@@ -8,7 +8,8 @@
 msr_thread_dqgmres_solver::msr_thread_dqgmres_solver (const int t,
                                                       msr_dqgmres_initializer &initializer) :
   msr_thread_handler (t, initializer.m_p, &(initializer.m_barrier),
-                      initializer.m_shared_buf, initializer.m_matrix),
+                      initializer.m_shared_buf, initializer.m_matrix,
+                      initializer.m_first_t),
   m_precond (initializer.m_precond),
   m_precond_type (initializer.m_precond_type),
   m_dim (initializer.m_dim),
@@ -61,9 +62,13 @@ solver_state msr_thread_dqgmres_solver::dqgmres_solve ()
   thread_utils::copy_shared (*this, m_v2, m_rhs);
   thread_utils::copy_shared (*this, m_rhs, m_rhs_save);
 
-  m_turns.clear ();
-  m_basis_derivs.clear ();
-  m_basis.clear ();
+  if (is_first ())
+    {
+      m_turns.clear ();
+      m_basis_derivs.clear ();
+      m_basis.clear ();
+    }
+  barrier_wait ();
 
   mult_vector_shared_out (m_matrix, m_x, m_v2);
   thread_utils::lin_combination_1 (*this, m_rhs, m_v2, -1);
@@ -181,7 +186,7 @@ void msr_thread_dqgmres_solver::apply_preconditioner ()
       break;
     case preconditioner_type::ilu0:
       {
-        if (t_id () != 0)
+        if (!is_first ())
           break;
         for (int i = 1; i < m_matrix.n (); i++)
           {
@@ -219,8 +224,10 @@ void msr_thread_dqgmres_solver::apply_preconditioner ()
 int msr_thread_dqgmres_solver::compute_hessenberg_col ()
 {
   int h_iter = 1;
-
-  mult_vector_shared_out (matrix (), *(m_basis.get_newest ()), m_v2);
+  if (is_first ())
+    *m_v1 = m_basis.get_newest ();
+  barrier_wait ();
+  mult_vector_shared_out (matrix (), **m_v1, m_v2);
 
   if (is_first ())
     m_basis.to_preoldest ();
@@ -259,7 +266,7 @@ int msr_thread_dqgmres_solver::compute_hessenberg_col ()
 
 void msr_thread_dqgmres_solver::apply_turn_matrices (const int cur_iter)
 {
-  if (t_id () != 0)
+  if (!is_first ())
     {
       barrier_wait ();
       return;
@@ -299,7 +306,7 @@ void msr_thread_dqgmres_solver::apply_turn_matrices (const int cur_iter)
 
 void msr_thread_dqgmres_solver::compute_turn_matrix (const int cur_iter)
 {
-  if (t_id () != 0)
+  if (!is_first ())
     {
       barrier_wait ();
       return;
@@ -328,8 +335,7 @@ void msr_thread_dqgmres_solver::apply_last_turn (const int cur_iter, double &g1,
       double cos = m_turns.get_newest ()->at (0);
       double sin = m_turns.get_newest ()->at (1);
       int h_iter = (cur_iter <= m_dim) ? cur_iter : m_dim;
-      if (is_first ())
-        m_hessenberg[h_iter] =  cos * m_hessenberg[h_iter] + sin * m_hessenberg[h_iter + 1];
+      m_hessenberg[h_iter] =  cos * m_hessenberg[h_iter] + sin * m_hessenberg[h_iter + 1];
 
       g2 = -sin * g1;
       g1 = cos * g1;
@@ -362,6 +368,8 @@ int msr_thread_dqgmres_solver::compute_basis_deriv (const int cur_iter)
 
   if (is_first ())
     m_basis_derivs.to_preoldest ();
+
+  barrier_wait ();
 
   while (thread_utils::limited_deque_get_next<simple_vector >
          (*this, m_basis_derivs, m_v1, m_flag))

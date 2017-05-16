@@ -16,7 +16,12 @@ private:
   least_squares_interpol *m_interpolator;
   GLfloat *m_vertices;
   GLushort *m_indices;
-  double m_z_max;
+  double m_x_max = 1;
+  double m_x_min = -1;
+  double m_y_max = 1;
+  double m_y_min = -1;
+  double m_z_max = 1;
+  double m_z_min = -1;
   bool m_vertices_uptodate;
 public:
   gl_plot_widget (QWidget *parent = nullptr);
@@ -30,6 +35,7 @@ public:
   void keyPressEvent (QKeyEvent *event);
 private:
   void fill_vertices ();
+  void update_bounds (const double x, const double y, const double z);
 public slots:
   void camera_update (int direction);
   void camera_left ();

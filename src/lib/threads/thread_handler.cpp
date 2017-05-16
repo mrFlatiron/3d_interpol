@@ -1,6 +1,14 @@
 #include "thread_handler.h"
 #include <cstdio>
 
+thread_handler::thread_handler ()
+{
+  m_t = 0;
+  m_p = 0;
+  m_first_t = 0;
+  m_barrier = nullptr;
+}
+
 thread_handler::thread_handler (const int t_id, const int p,
                           pthread_barrier_t *barrier, const int first_t_id) :
   m_t (t_id),
@@ -33,6 +41,11 @@ int thread_handler::p () const
 bool thread_handler::is_first () const
 {
   return m_first_t == m_t;
+}
+
+int thread_handler::stride () const
+{
+  return m_first_t;
 }
 
 void thread_handler::barrier_wait ()

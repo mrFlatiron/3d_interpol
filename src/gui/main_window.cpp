@@ -20,12 +20,7 @@
 #include <QVBoxLayout>
 #include <QGridLayout>
 
-class thread_args
-{
-  msr_thread_dqgmres_solver *handler;
-  computational_components *components;
-  thread_ret *ret;
-};
+
 
 main_window::main_window (const double a0, const double a1, const double b0, const double b1) : QDialog (),
   m_a0 (a0),
@@ -34,9 +29,8 @@ main_window::main_window (const double a0, const double a1, const double b0, con
   m_b1 (b1)
 {
   m_interpol = nullptr;
-  m_common_args = nullptr;
-  m_ret_struct = nullptr;
-  m_components = new computational_components;
+  m_timer = new QTimer (this);
+  m_timer->setSingleShot (true);
   create_widgets ();
   set_layouts ();
   do_connects ();
@@ -62,12 +56,12 @@ void main_window::create_widgets ()
   m_phi_partition = new QSpinBox (this);
   m_phi_partition->setMinimum (1);
   m_phi_partition->setValue (1);
-  m_phi_partition->setMaximum (4000);
+  m_phi_partition->setMaximum (10000000);
 
   m_r_partition = new QSpinBox (this);
   m_r_partition->setMinimum (1);
   m_r_partition->setValue (1);
-  m_r_partition->setMaximum (4000);
+  m_r_partition->setMaximum (1000000);
 
   m_threads = new QSpinBox (this);
   m_threads->setMinimum (1);
@@ -167,10 +161,10 @@ void main_window::set_layouts ()
 
 void main_window::do_connects ()
 {
-  connect (m_compute_pb, SIGNAL (clicked ()), this, SLOT (disable_pb_and_emit ()));
-  connect (this, SIGNAL (buttons_ready ()), this, SLOT (interpolate ()));
+  connect (m_compute_pb, SIGNAL (clicked ()), this, SLOT (interpolate ()));
   connect (this, SIGNAL (interpolation_done ()), m_glwidget, SLOT (update ()));
   connect (this, SIGNAL (interpolation_done ()), this, SLOT (enable_pb ()));
+  connect (m_timer, SIGNAL (timeout ()), this, SLOT (check_if_done()));
   connect (m_turn_left, SIGNAL (pressed ()), m_glwidget, SLOT (camera_left ()));
   connect (m_turn_right, SIGNAL (pressed ()), m_glwidget, SLOT (camera_right ()));
 }
@@ -184,11 +178,10 @@ void main_window::interpolate ()
 
     if (!m_interpol)
         m_interpol = new least_squares_interpol;
-
-    if (m_common_args)
-      delete m_common_args;
-
-    m_common_args = new thread_common_args;
+    else
+      {
+        pthread_barrier_destroy (&(m_components.barrier));
+      }
 
   m_interpol->set_ellipse (m_a0, m_a1, m_b0, m_b1);
   int m = m_phi_partition->value ();
@@ -196,74 +189,30 @@ void main_window::interpolate ()
   m_interpol->set_partition (m, n);
   int p = m_threads->value ();
 
-  msr_matrix gramm;
-
-  simple_vector x_ini ((m + 1) * (n + 1));
-  simple_vector x_out ((m + 1) * (n + 1));
-  simple_vector rhs ((m + 1) * (n + 1));
-
-  std::vector<msr_thread_dqgmres_solver> handlers;
-  m_initializer = (1, p, gramm, preconditioner_type::jacobi, 5,
-                                  300, 1e-15, x_ini, x_out, rhs);
-  for (int t = 1; t <= p; t++)
-    handlers.push_back (msr_thread_dqgmres_solver (t, initer));
+  m_components.solution.resize ((m + 1) * (n + 1));
+  m_components.rhs.resize ((m + 1) * (n + 1));
+  pthread_barrier_init (&(m_components.barrier), 0, p);
 
   pthread_t pt;
-  double solve_time = get_monotonic_time ();
+
+  m_thread_args.resize (p);
+  for (int i = 1; i <= p; i++)
+    {
+      m_thread_args[i - 1].handler = thread_handler (i, p, &(m_components.barrier), 1);
+      m_thread_args[i - 1].components = &(m_components);
+      m_thread_args[i - 1].ret = &m_ret_struct;
+      m_thread_args[i - 1].interpol = m_interpol;
+    }
+
+  m_components.is_done = false;
+
+  m_compute_pb->setDisabled (true);
 
   for (int t = 1; t <= p; t++)
-    pthread_create (&pt, 0, computing_thread_worker, handlers.data () + t - 1);
+    pthread_create (&pt, 0, computing_thread_worker, m_thread_args.data () + t - 1);
 
-  solve_time = get_monotonic_time () - solve_time;
+  m_timer->start (100);
 
-  simple_vector rhs_comp (gramm.n ());
-
-  gramm.mult_vector (x_out, rhs_comp);
-
-
-  double norm = 0;
-   for (int i = 0; i < gramm.n (); i++)
-     {
-       norm += (rhs[i] - rhs_comp[i]) * (rhs[i] - rhs_comp[i]);
-     }
-
-   norm = sqrt (norm);
-
-
-
-   m_interpol->set_expansion_coefs (x_out);
-
-   double maxval = -1;
-   double l2  = 0;
-   double avg = 0;
-   double func_max = 0;
-   for (int i = 0; i <= m; i++)
-     for (int j = 0; j <= n; j++)
-       {
-         double phi = (double) i / m;
-         double r = (double) j / n;
-         double z = m_interpol->node_val (i, j);
-         if (z > func_max)
-           func_max = fabs (z);
-         double val = fabs (z - m_interpol->func_val (phi, r));
-         l2 += val * val;
-         avg += val;
-         if (val > maxval)
-           {
-             maxval = val;
-           }
-       }
-   l2 = sqrt (l2);
-   avg /= ((m + 1) * (n + 1));
-
-   m_matrix_time->setText (QString::number (set_system_time));
-   m_solution_time->setText (QString::number (solve_time));
-   m_rhs_time->setText (QString::number (set_rhs_time));
-   m_max_residual->setText (QString::number (maxval));
-   m_avg_residual->setText (QString::number (avg));
-   m_l2->setText (QString::number (l2));
-   m_glwidget->set_interpolator (m_interpol);
-   emit interpolation_done ();
 }
 
 void main_window::disable_pb_and_emit ()
@@ -276,7 +225,52 @@ void main_window::disable_pb_and_emit ()
 void main_window::enable_pb ()
 {
   m_compute_pb->setEnabled (true);
-  m_compute_pb->blockSignals (false);
+}
+
+void main_window::check_if_done ()
+{
+  if (!m_components.is_done)
+    {
+      m_timer->start (100);
+    }
+  else
+    {
+      m_interpol->set_expansion_coefs (m_components.solution);
+      int m = m_interpol->m ();
+      int n = m_interpol->n ();
+      double maxval = -1;
+      double l2  = 0;
+      double avg = 0;
+      double func_max = 0;
+      for (int i = 0; i <= m; i++)
+        for (int j = 0; j <= n; j++)
+          {
+            double phi = (double) i / m;
+            double r = (double) j / n;
+            double z = m_interpol->node_val (i, j);
+            if (z > func_max)
+              func_max = fabs (z);
+            double val = fabs (z - m_interpol->func_val (phi, r));
+            l2 += val * val;
+            avg += val;
+            if (val > maxval)
+              {
+                maxval = val;
+              }
+          }
+      l2 = sqrt (l2);
+      avg /= ((m + 1) * (n + 1));
+
+      m_matrix_time->setText (QString::number (m_ret_struct.set_system_time));
+      m_solution_time->setText (QString::number (m_ret_struct.system_solve_time));
+      m_rhs_time->setText (QString::number (m_ret_struct.set_rhs_time));
+      m_max_residual->setText (QString::number (maxval));
+      m_avg_residual->setText (QString::number (avg));
+      m_l2->setText (QString::number (l2));
+      m_glwidget->set_interpolator (m_interpol);
+      emit interpolation_done ();
+    }
+
 }
 
 
@@ -284,47 +278,53 @@ void *main_window::computing_thread_worker (void *args_)
 {
   thread_args *args = (thread_args*)args_;
 
-  thread_handler *handler = args->handler;
+  thread_handler handler = args->handler;
 
   computational_components *comps = args->components;
 
   thread_ret *ret = args->ret;
 
-  if (handler->is_first ())
+  least_squares_interpol *interpol = args->interpol;
+
+  if (handler.is_first ())
     {
       double begin = get_monotonic_time ();
-      m_interpol->set_system (comps->gramm);
+      interpol->set_system (comps->gramm);
       ret->set_system_time = get_monotonic_time () - begin;
     }
+  handler.barrier_wait ();
   double set_rhs_time = get_monotonic_time ();
-  m_interpol->parallel_set_rhs (*handler, comps->rhs, func);
+  interpol->parallel_set_rhs (handler, comps->rhs, func, false);
   set_rhs_time = get_monotonic_time () - set_rhs_time;
 
-  if (handler->is_first ())
+  if (handler.is_first ())
     {
       ret->set_rhs_time = set_rhs_time;
     }
 
-  if (handler->is_first ())
+  if (handler.is_first ())
     {
       simple_vector x_ini (comps->gramm.n ());
-      comps->initializer = new msr_dqgmres_initializer (handler->t_id (),
-                                                        handler->p (),
+      comps->initializer = new msr_dqgmres_initializer (handler.t_id (),
+                                                        handler.p (),
                                                         comps->gramm,
                                                         preconditioner_type::jacobi,
                                                         5, 300, 1e-16, x_ini, comps->solution,
                                                         comps->rhs);
     }
 
-  handler->barrier_wait ();
+  handler.barrier_wait ();
 
-  comps->handlers[handler->t_id ()] = msr_thread_dqgmres_solver (handler->t_id (), *(comps->initializer));
 
-  msr_thread_dqgmres_solver solver = comps->handlers[handler->t_id ()];
+  msr_thread_dqgmres_solver solver (handler.t_id (), *(comps->initializer));
 
+  handler.barrier_wait ();
+
+  double system_solve_time = get_monotonic_time ();
   solver_state state =  solver.dqgmres_solve ();
+  ret->system_solve_time = get_monotonic_time () - system_solve_time;
 
-  if (solver.is_first ())
+  if (handler.is_first ())
     {
       switch (state)
         {
@@ -332,18 +332,17 @@ void *main_window::computing_thread_worker (void *args_)
           printf ("Converged!\n");
           break;
         case solver_state::TOO_SLOW:
-          printf ("Convergence is too slow");
+          printf ("Convergence is too slow\n");
           break;
         case solver_state::MAX_ITER:
           printf ("Failed to converge\n");
           break;
         }
     }
-  if (solver.is_first ())
+  if (handler.is_first ())
     {
-      pthread_mutex_lock (&(comps->cmutex));
-      pthread_cond_broadcast (&(comps->cv));
-      pthread_mutex_unlock (&(comps->cmutex));
+      comps->is_done = true;
+      delete comps->initializer;
     }
 
     return args_;

@@ -3,6 +3,8 @@
 #include <QDialog>
 #include <QSize>
 #include "kernel/least_squares_interpol.h"
+#include "thread_ret.h"
+#include "computational_components.h"
 #include <memory>
 
 class QSpinBox;
@@ -10,11 +12,12 @@ class QGLWidget;
 class QLabel;
 class QLineEdit;
 class QPushButton;
+class QTimer;
 class gl_plot_widget;
 class least_squares_interpol;
 class msr_dqgmres_initializer;
-class thread_common_args;
 class thread_ret;
+class thread_args;
 class computational_components;
 
 class main_window : public QDialog
@@ -36,9 +39,10 @@ private:
   QPushButton *m_turn_right;
 
   least_squares_interpol *m_interpol;
-  thread_common_args *m_common_args;
-  thread_ret *m_ret_struct;
-  computational_components *m_components;
+  thread_ret m_ret_struct;
+  computational_components m_components;
+  std::vector<thread_args> m_thread_args;
+  QTimer *m_timer;
 
   double m_a0;
   double m_a1;
@@ -61,6 +65,7 @@ private slots:
   void interpolate ();
   void disable_pb_and_emit ();
   void enable_pb ();
+  void check_if_done ();
 };
 
 #endif // MAIN_WINDOW_H

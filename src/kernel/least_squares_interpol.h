@@ -36,7 +36,8 @@ public:
   void set_system (msr_matrix &out) const;
   void set_rhs (simple_vector &out, double (*func) (const double, const double), const bool func_in_phir = false);
   void parallel_set_rhs (thread_handler &handler, simple_vector &shared_out,
-                         double (*func) (const double, const double));
+                         double (*func) (const double, const double),
+                         const bool func_in_phir);
   void map_to_phir (const double x, const double y, double &phi, double &r) const;
   void map_to_xy (const double phi, const double r, double &x, double &y) const;
   double operator () (const double x, const double y) const;

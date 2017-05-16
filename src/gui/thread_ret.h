@@ -9,7 +9,7 @@ public:
   double set_rhs_time;
   double system_solve_time;
 public:
-  thread_ret();
+  thread_ret ();
 };
 
 #endif // THREAD_RET_H

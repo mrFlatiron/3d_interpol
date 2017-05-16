@@ -106,26 +106,29 @@ void least_squares_interpol::set_rhs (simple_vector &out, double (*func)(const d
       }
 }
 
-void least_squares_interpol::parallel_set_rhs (thread_handler &handler, simple_vector &shared_out, double (*func)(const double, const double))
+void least_squares_interpol::parallel_set_rhs (thread_handler &handler, simple_vector &shared_out, double (*func)(const double, const double), const bool func_in_phir)
 {
-  int t = handler.t_id ();
-  if (t == 0)
+  if (handler.is_first ())
     {
       m_func = func;
+      m_func_in_phir = func_in_phir;
       shared_out.resize ((m_m + 1) * (m_n + 1));
     }
   handler.barrier_wait ();
   int begin, work;
   handler.divide_work ((m_m + 1) * (m_n + 1), begin, work);
 
-  int i_start = begin / (m_n + 1);
-  int j_start = begin - i_start * (m_n + 1);
-  int i_end = (begin + work - 1) / (m_n + 1);
-  int j_end = (begin + work - 1 - i_end * (m_n + 1));
+  int i = begin / (m_n + 1);
+  int j = begin - i * (m_n + 1);
+  int iter = begin;
+  for (; iter < begin + work; iter++)
+    {
+      shared_out[iter] = rhs_val (i, j);
+      j = (j + 1) % (m_n + 1);
+      if (j == 0)
+        i++;
+    }
 
-  for (int i = i_start; i <= i_end; i++)
-    for (int j = j_start; j<= j_end; j++)
-      shared_out[i * (m_n + 1) + j] = rhs_val (i, j);
   handler.barrier_wait ();
 }
 

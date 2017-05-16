@@ -34,7 +34,7 @@ void gl_plot_widget::initializeGL ()
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
-  static GLfloat lightPosition[4] = {-1.0, 1.0, 6.0, 1.0};
+  static GLfloat lightPosition[4] = {0.0, 0.0, 1, 1.0};
   glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
 }
 
@@ -76,6 +76,7 @@ void gl_plot_widget::paintGL ()
   glLineWidth(2.0f);
   glColor3f(0.0,0.0,1.0);
   fill_vertices ();
+
   double max = (a1 > b1) ?  a1 : b1;
   max = (max > m_z_max) ? max : m_z_max;
   double z_eye;
@@ -85,35 +86,44 @@ void gl_plot_widget::paintGL ()
   else
     z_eye = 2 * m_z_max;
 
+  double r = pow ((m_x_max - m_x_min), 2) +
+             pow ((m_y_max - m_y_min), 2) +
+             pow ((m_z_max - m_z_min), 2);
+
+  r = sqrt (r);
+
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity ();
-  glOrtho (-max, max, -2 * max,  2 * max, 5 * max, -5 * max);
+  glOrtho ( -1 + m_x_min, m_x_max + 1, -1 + m_y_min , m_y_max + 1, -1 - r, r + 1);
 
 
   glMatrixMode(GL_MODELVIEW);
 
   glLoadIdentity();
-  max = sqrt (a1 * a1 + b1 * b1);
-  gluLookAt (max * cos (m_camera_angle_xy), max * sin (m_camera_angle_xy), z_eye, 0.0,0.0,0.0,0.0,0.0,1.0);
+//  gluLookAt (r + 2, r + 2, r + 2, -r, -r, -r, 0, 0, 1);
+//  max = sqrt (a1 * a1 + b1 * b1);
+//  gluLookAt (r * cos (m_camera_angle_xy), r * sin (m_camera_angle_xy), r, 0.0,0.0,0.0,0.0,0.0,1.0);
+  gluLookAt (sqrt (0.2) * cos (m_camera_angle_xy), sqrt (0.2) * sin (m_camera_angle_xy), 0.1, 0, 0, 0, 0, 0, 1);
 
 
 
 
-//  glDisable(GL_LIGHTING);
-//  glColor3f(0.0,0.0,1.0);
-//  glBegin(GL_LINES);
-//      glVertex3f(0.0, 0.0,0.0);
-//      glVertex3f(a1,  0.0,0.0);
-//      glVertex3f(0.0,0.0,0.0);
-//      glVertex3f(0.0,b1, 0.0);
-//      double z_axis = 1;
-//      if (m_z_max > z_axis)
-//        z_axis = m_z_max;
-//      glVertex3f(0.0,0.0,0.0);
+  glDisable(GL_LIGHTING);
+  glColor3f(1.0,0.0,0.0);
+  glBegin(GL_LINES);
+      glVertex3f(m_x_min, m_y_min, m_z_min);
+      glVertex3f(m_x_max,  m_y_min, m_z_min);
+      glColor3f(0.0,1.0,0.0);
+      glVertex3f(m_x_min, m_y_min, m_z_min);
+      glVertex3f(m_x_min, m_y_max, m_z_min);
+      glColor3f(0.0,0.0,1.0);
+      glVertex3f(m_x_min, m_y_min, m_z_min);
+      glVertex3f(m_x_min, m_y_min, m_z_max);
+  glEnd();
+  glEnable(GL_LIGHTING);
 
-//      glVertex3f(0.0,0.0,z_axis);
-//  glEnd();
-//  glEnable(GL_LIGHTING);
+  GLfloat light_pos[] = {r, r, r, 1};
+  glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 
   GLfloat faceColor[4] = {0.9, 0.5, 0.1, 1.0};
   glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, faceColor);
@@ -167,40 +177,23 @@ void gl_plot_widget::fill_vertices ()
     delete[] m_indices;
 
   m_vertices = new GLfloat[3 * (m + 1) * (n + 1)];
-  bool first = true;
   int iter = 0;
-  int ur = 0;
-  int ul = 0;
-  int bl = 0;
-  int br = 0;
+
   for (int i = 0; i <= m; i++)
     for (int j = 0; j <= n; j++)
       {
         double x, y, z;
         m_interpolator->map_to_xy ((double)i / m, (double)j / n, x, y);
-        if (x * x + y * y > 16 && x * x + y * y < 4)
-          {
-            printf ("debug assert");
-          }
-        if (x > 0 && y > 0) ur++;
-        if (x < 0 && y > 0) ul++;
-        if (x < 0 && y < 0) bl++;
-        if (x > 0 && y < 0) br++;
+
         z = m_interpolator->node_val (i, j);
-        if (first)
-          m_z_max = fabs (z);
-        else if (fabs (z) > m_z_max)
-          m_z_max = fabs (z);
+
+        update_bounds (x, y, z);
+
         m_vertices[3 * iter] = (GLfloat)x;
         m_vertices[3 * iter + 1] = (GLfloat)y;
         m_vertices[3 * iter + 2] = (GLfloat)z;
         iter++;
       }
-
-  printf ("ur = %d\n"
-          "ul = %d\n"
-          "bl = %d\n"
-          "br = %d\n", ur, ul, bl, br);
 
   m_indices = new GLushort[6 * m * n];
   iter = 0;
@@ -221,6 +214,22 @@ void gl_plot_widget::fill_vertices ()
           }
       }
   m_vertices_uptodate = true;
+}
+
+void gl_plot_widget::update_bounds (const double x, const double y, const double z)
+{
+  if (x < m_x_min)
+    m_x_min = x;
+  if (x > m_x_max)
+    m_x_max = x;
+  if (y < m_y_min)
+    m_y_min = y;
+  if (y > m_y_max)
+    m_y_max = y;
+  if (z < m_z_min)
+    m_z_min = z;
+  if (z > m_z_max)
+    m_z_max = z;
 }
 
 void gl_plot_widget::camera_update (int direction)

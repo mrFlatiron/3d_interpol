@@ -83,11 +83,11 @@ double thread_utils::l2_norm (thread_handler &handler, const simple_vector &vect
   int begin, work;
   handler.divide_work (n, begin, work);
 
-  shared_buf[handler.t_id ()] = 0;
+  shared_buf[handler.t_id () - handler.stride ()] = 0;
 
   for (int i = begin; i < begin + work; i++)
     {
-      shared_buf[handler.t_id ()] += vect[i] * vect[i];
+      shared_buf[handler.t_id () - handler.stride ()] += vect[i] * vect[i];
     }
 
   handler.barrier_wait ();
@@ -125,7 +125,7 @@ double thread_utils::dot_product (thread_handler &handler, const simple_vector &
   for (int i = begin; i < begin + work; i++)
     s += in1[i] * in2[i];
 
-  shared_buf[handler.t_id ()] = s;
+  shared_buf[handler.t_id () - handler.stride ()] = s;
   s = 0;
 
   handler.barrier_wait ();

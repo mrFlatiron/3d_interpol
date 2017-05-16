@@ -5,5 +5,5 @@ double func (const double x, const double y)
 {
   (void)x;
   (void)y;
- return -10;
+ return sin(x) + cos(y);
 }
