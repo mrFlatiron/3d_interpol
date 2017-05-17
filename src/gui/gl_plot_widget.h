@@ -22,7 +22,7 @@ private:
   static const int max_vertex_pack = 65532;
   int m_full_packs = 0;
   float m_camera_angle_xy;
-  float m_camera_angle_z;
+  float m_camera_lift;
   least_squares_interpol *m_interpolator;
   GLfloat *m_vertices;
   int *m_indices;
@@ -54,6 +54,8 @@ public slots:
   void camera_update (int direction);
   void camera_left ();
   void camera_right ();
+  void camera_up ();
+  void camera_down ();
 };
 
 #endif // GL_PLOT_WIDGET_H

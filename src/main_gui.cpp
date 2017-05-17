@@ -1,5 +1,6 @@
 #include <QApplication>
 #include "gui/main_window.h"
+#include "usage_string.h"
 
 int main (int argc, char *argv[])
 {
@@ -7,7 +8,7 @@ int main (int argc, char *argv[])
 
   if (argc < 5)
     {
-      printf ("Usage: %s a1 a0 b1 b0", argv[0]);
+      printf ("Usage: %s %s", argv[0], usage_string);
       return 0;
     }
   double a1 = atof (argv[1]);

@@ -47,9 +47,13 @@ HEADERS += \
     src/test_functions/test_functions.h \
     src/gui/computational_components.h \
     src/gui/thread_args.h \
-    src/gui/thread_ret.h
+    src/gui/thread_ret.h \
+    src/usage_string.h
 
 INCLUDEPATH += src/
 INCLUDEPATH += src/lib
 
 QMAKE_CXXFLAGS += -std=c++11 --fast-math
+
+RESOURCES += \
+    resources/3d_interpol.qrc

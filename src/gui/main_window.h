@@ -14,6 +14,8 @@ class QLineEdit;
 class QPushButton;
 class QTimer;
 class QProgressBar;
+class QToolBar;
+class QToolButton;
 class gl_plot_widget;
 class least_squares_interpol;
 class msr_dqgmres_initializer;
@@ -35,10 +37,13 @@ private:
   QLineEdit *m_max_residual;
   QLineEdit *m_avg_residual;
   QLineEdit *m_l2;
-  QPushButton *m_compute_pb;
-  QPushButton *m_turn_left;
-  QPushButton *m_turn_right;
+  QToolButton *m_compute_pb;
+  QToolButton *m_turn_left;
+  QToolButton *m_turn_right;
+  QToolButton *m_camera_up;
+  QToolButton *m_camera_down;
   QProgressBar *m_progress_bar;
+  QToolBar *m_head_toolbar;
 
   least_squares_interpol *m_interpol;
   thread_ret m_ret_struct;

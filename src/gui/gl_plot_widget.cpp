@@ -11,7 +11,7 @@ QSize gl_plot_widget::sizeHint () const
 
 gl_plot_widget::gl_plot_widget (QWidget *parent) : QGLWidget (parent)
 {
-  m_camera_angle_z = 0;
+  m_camera_lift = 1;
   m_camera_angle_xy = 0;
   m_indices = nullptr;
   m_vertices = nullptr;
@@ -79,7 +79,7 @@ void gl_plot_widget::paintGL ()
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity ();
-  glOrtho (1.1 * m_x_min, 1.1 * m_x_max, 2 * m_y_min , 2 * m_y_max, -1 - r, r + 1);
+  glOrtho (1.1 * m_x_min, 1.1 * m_x_max, -r , r, - 1.1 * r, 1.1 * r);
 
 
   glMatrixMode(GL_MODELVIEW);
@@ -88,7 +88,7 @@ void gl_plot_widget::paintGL ()
 //  gluLookAt (r + 2, r + 2, r + 2, -r, -r, -r, 0, 0, 1);
 //  max = sqrt (a1 * a1 + b1 * b1);
 //  gluLookAt (r * cos (m_camera_angle_xy), r * sin (m_camera_angle_xy), r, 0.0,0.0,0.0,0.0,0.0,1.0);
-  gluLookAt (sqrt (0.2) * cos (m_camera_angle_xy), sqrt (0.2) * sin (m_camera_angle_xy), 2, 0, 0, 0, 0, 0, 1);
+  gluLookAt (sqrt (0.2) * cos (m_camera_angle_xy), sqrt (0.2) * sin (m_camera_angle_xy), m_camera_lift * sqrt (0.2), 0, 0, 0, 0, 0, 1);
 
 
 
@@ -283,6 +283,20 @@ void gl_plot_widget::camera_right ()
   m_camera_angle_xy = fmod (m_camera_angle_xy, 2 * M_PI);
   update ();
 }
+
+void gl_plot_widget::camera_up ()
+{
+  m_camera_lift += 0.05;
+  update ();
+}
+
+void gl_plot_widget::camera_down ()
+{
+  m_camera_lift -= 0.05;
+  update ();
+}
+
+
 
 void gl_plot_widget::mousePressEvent (QMouseEvent *event)
 {

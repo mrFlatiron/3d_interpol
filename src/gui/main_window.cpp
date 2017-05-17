@@ -12,14 +12,17 @@
 #include <vector>
 
 #include <QSpinBox>
+#include <QIcon>
 #include <QLineEdit>
 #include <QLabel>
 #include <QString>
 #include <QPushButton>
+#include <QToolBar>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <QProgressBar>
+#include <QKeySequence>
 
 
 
@@ -86,20 +89,43 @@ void main_window::create_widgets ()
   m_l2 = new QLineEdit (this);
   m_l2->setReadOnly (true);
 
-  m_compute_pb = new QPushButton (this);
-  m_compute_pb->setText ("Play");
+  m_compute_pb = new QToolButton (this);
+  m_compute_pb->setIcon (QIcon (":/icons/plot_3d.png"));
+  m_compute_pb->setShortcut (QKeySequence ("F5"));
 
-  m_turn_left = new QPushButton (this);
-  m_turn_left->setText ("<-");
+  m_turn_left = new QToolButton (this);
+  m_turn_left->setIcon (QIcon (":/icons/left_arrow.png"));
   m_turn_left->setAutoRepeat (true);
+  m_turn_left->setShortcut (QKeySequence ("Ctrl+H"));
 
-  m_turn_right = new QPushButton (this);
-  m_turn_right->setText ("->");
+  m_turn_right = new QToolButton (this);
+  m_turn_right->setIcon (QIcon (":/icons/right_arrow.png"));
   m_turn_right->setAutoRepeat (true);
+  m_turn_right->setShortcut (QKeySequence ("Ctrl+J"));
+
+  m_camera_up = new QToolButton (this);
+  m_camera_up->setIcon (QIcon (":/icons/up_arrow.png"));
+  m_camera_up->setAutoRepeat (true);
+  m_camera_up->setShortcut (QKeySequence ("Ctrl+K"));
+
+  m_camera_down = new QToolButton (this);
+  m_camera_down->setIcon (QIcon (":/icons/down_arrow.png"));
+  m_camera_down->setAutoRepeat (true);
+  m_camera_down->setShortcut (QKeySequence ("Ctrl+L"));
+
+  m_head_toolbar = new QToolBar (this);
+  m_head_toolbar->setOrientation (Qt::Horizontal);
+
+  m_head_toolbar->addWidget (m_compute_pb);
+  m_head_toolbar->addWidget (m_turn_left);
+  m_head_toolbar->addWidget (m_turn_right);
+  m_head_toolbar->addWidget (m_camera_up);
+  m_head_toolbar->addWidget (m_camera_down);
 
   m_progress_bar = new QProgressBar (this);
   m_progress_bar->setRange (0, 3);
   m_progress_bar->setValue (0);
+
 }
 
 void main_window::set_layouts ()
@@ -108,7 +134,13 @@ void main_window::set_layouts ()
   {
     QHBoxLayout *hlo_1 = new QHBoxLayout;
     {
-      hlo_1->addWidget (m_glwidget);
+      hlo_1->addWidget (m_head_toolbar, 0, Qt::AlignLeft);
+      hlo_1->addWidget (m_progress_bar);
+    }
+    vlo_1->addLayout (hlo_1);
+    QHBoxLayout *hlo_2 = new QHBoxLayout;
+    {
+      hlo_2->addWidget (m_glwidget);
       m_glwidget->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Expanding);
       QGridLayout *glo_1 = new QGridLayout;
       {
@@ -150,23 +182,22 @@ void main_window::set_layouts ()
         glo_1->addWidget (m_l2, 8, 1);
         m_l2->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-        glo_1->addWidget (m_turn_left, 9, 0);
-        m_turn_left->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+//        glo_1->addWidget (m_turn_left, 9, 0);
+//        m_turn_left->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-        glo_1->addWidget (m_turn_right, 9, 1);
-        m_turn_right->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+//        glo_1->addWidget (m_turn_right, 9, 1);
+//        m_turn_right->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+
+//        glo_1->addWidget (m_camera_up, 10, 0);
+//        m_camera_up->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+
+//        glo_1->addWidget (m_camera_down, 10, 1);
+//        m_camera_down->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
       }
-      hlo_1->addLayout (glo_1);
-    }
-    vlo_1->addLayout (hlo_1);
-    vlo_1->setAlignment (hlo_1, Qt::AlignTop);
-    QHBoxLayout *hlo_2 = new QHBoxLayout;
-    {
-      hlo_2->addWidget (m_compute_pb);
-      hlo_2->setAlignment (m_compute_pb, Qt::AlignLeft);
-      hlo_2->addWidget (m_progress_bar, Qt::AlignRight);
+      hlo_2->addLayout (glo_1);
     }
     vlo_1->addLayout (hlo_2);
+    vlo_1->setAlignment (hlo_2, Qt::AlignTop);
   }
   setLayout (vlo_1);
 }
@@ -179,6 +210,8 @@ void main_window::do_connects ()
   connect (m_timer, SIGNAL (timeout ()), this, SLOT (check_if_done()));
   connect (m_turn_left, SIGNAL (pressed ()), m_glwidget, SLOT (camera_left ()));
   connect (m_turn_right, SIGNAL (pressed ()), m_glwidget, SLOT (camera_right ()));
+  connect (m_camera_up, SIGNAL (pressed ()), m_glwidget, SLOT (camera_up ()));
+  connect (m_camera_down, SIGNAL (pressed ()), m_glwidget, SLOT (camera_down ()));
 }
 
 void main_window::interpolate ()
