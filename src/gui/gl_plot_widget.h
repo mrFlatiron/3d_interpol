@@ -6,12 +6,37 @@
 class QColor;
 class least_squares_interpol;
 
+enum class direction
+{
+  left,
+  right,
+  up,
+  down
+};
+
 struct interpol_meta
 {
   double a1;
   double b1;
   int m;
   int n;
+};
+
+class camera_params
+{
+public:
+  GLfloat oxy_angle;
+  GLfloat oz_angle;
+  GLfloat x_eye;
+  GLfloat y_eye;
+  GLfloat z_eye;
+  GLfloat x_norm;
+  GLfloat y_norm;
+  GLfloat z_norm;
+  GLfloat r;
+public:
+  camera_params ();
+  void move (direction direct);
 };
 
 class gl_plot_widget : public QGLWidget
@@ -21,8 +46,7 @@ class gl_plot_widget : public QGLWidget
 private:
   static const int max_vertex_pack = 65532;
   int m_full_packs = 0;
-  float m_camera_angle_xy;
-  float m_camera_lift;
+  camera_params m_camera;
   least_squares_interpol *m_interpolator;
   GLfloat *m_vertices;
   int *m_indices;
@@ -44,14 +68,11 @@ public:
   void resizeGL(int width, int height);
   void paintGL();
   void set_interpolator (least_squares_interpol *interpolator);
-  void mousePressEvent (QMouseEvent *event);
-  void keyPressEvent (QKeyEvent *event);
 private:
   void fill_vertices ();
   void fill_colors ();
   void update_bounds (const double x, const double y, const double z);
 public slots:
-  void camera_update (int direction);
   void camera_left ();
   void camera_right ();
   void camera_up ();

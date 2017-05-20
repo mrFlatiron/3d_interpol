@@ -11,8 +11,6 @@ QSize gl_plot_widget::sizeHint () const
 
 gl_plot_widget::gl_plot_widget (QWidget *parent) : QGLWidget (parent)
 {
-  m_camera_lift = 1;
-  m_camera_angle_xy = 0;
   m_indices = nullptr;
   m_vertices = nullptr;
   m_colors = nullptr;
@@ -88,7 +86,13 @@ void gl_plot_widget::paintGL ()
 //  gluLookAt (r + 2, r + 2, r + 2, -r, -r, -r, 0, 0, 1);
 //  max = sqrt (a1 * a1 + b1 * b1);
 //  gluLookAt (r * cos (m_camera_angle_xy), r * sin (m_camera_angle_xy), r, 0.0,0.0,0.0,0.0,0.0,1.0);
-  gluLookAt (sqrt (0.2) * cos (m_camera_angle_xy), sqrt (0.2) * sin (m_camera_angle_xy), m_camera_lift * sqrt (0.2), 0, 0, 0, 0, 0, 1);
+  gluLookAt (m_camera.x_eye,
+             m_camera.y_eye,
+             m_camera.z_eye,
+             0, 0, 0,
+             m_camera.x_norm,
+             m_camera.y_norm,
+             m_camera.z_norm);
 
 
 
@@ -259,71 +263,112 @@ void gl_plot_widget::update_bounds (const double x, const double y, const double
     m_z_max = z;
 }
 
-void gl_plot_widget::camera_update (int direction)
-{
-  if (direction > 0)
-    m_camera_angle_xy += 0.25 * 2 * M_PI;
-  else
-    m_camera_angle_xy -= 0.25 * 2 * M_PI;
-
-  m_camera_angle_xy = fmod (m_camera_angle_xy, 2 * M_PI);
-  update ();
-}
-
 void gl_plot_widget::camera_left ()
 {
-  m_camera_angle_xy += 0.1;
-  m_camera_angle_xy = fmod (m_camera_angle_xy, 2 * M_PI);
+  m_camera.move (direction::left);
   update ();
 }
 
 void gl_plot_widget::camera_right ()
 {
-  m_camera_angle_xy -= 0.1;
-  m_camera_angle_xy = fmod (m_camera_angle_xy, 2 * M_PI);
+  m_camera.move (direction::right);
   update ();
 }
 
 void gl_plot_widget::camera_up ()
 {
-  m_camera_lift += 0.05;
+  m_camera.move (direction::up);
   update ();
 }
 
 void gl_plot_widget::camera_down ()
 {
-  m_camera_lift -= 0.05;
+  m_camera.move (direction::down);
   update ();
 }
 
-
-
-void gl_plot_widget::mousePressEvent (QMouseEvent *event)
+camera_params::camera_params ()
 {
-  switch (event->button ())
-    {
-    case Qt::LeftButton:
-//      camera_update (1);
-      break;
-    case Qt::RightButton:
-//        camera_update (-1);
-        break;
-    default:
-      break;
-    }
+  oz_angle = M_PI / 4;
+  oxy_angle = M_PI / 4;
+  r = sqrt (0.2);
+
+  x_eye = r * sin (oz_angle) * cos (oxy_angle);
+  y_eye = r * sin (oz_angle) * sin (oxy_angle);
+  z_eye = r * cos (oz_angle);
+
+  x_norm = -x_eye;
+  y_norm  = -y_eye;
+  z_norm = r / cos (oz_angle) - z_eye;
 }
 
-void gl_plot_widget::keyPressEvent(QKeyEvent *event)
+void camera_params::move (direction direct)
 {
-  switch(event->key())
-  {
-      case 74:
-          camera_update (+1);
-          break;
-      case 75:
-          camera_update (-1);
-          break;
-    default:
+//  double x_old_norm = x_norm;
+//  double y_old_norm = y_norm;
+//  double z_old_norm = z_norm;
+//  double oz_cos_old = cos (oz_angle);
+
+//  bool oz_crossed = false;
+//  bool oxy_crossed = false;
+//  (void)oxy_crossed;
+
+  switch (direct)
+    {
+    case direction::left:
+      oxy_angle += 0.1;
+      oxy_angle = fmod (oxy_angle, 2 * M_PI);
+      break;
+    case direction::right:
+      oxy_angle -= 0.1;
+      oxy_angle = fmod (oxy_angle, 2 * M_PI);
+      break;
+    case direction::up:
+      if (oz_angle + 0.1 > M_PI / 2)
+        return;
+      oz_angle += 0.1;
+      oz_angle = fmod (oz_angle, 2 * M_PI);
+      break;
+    case direction::down:
+      if (oz_angle - 0.1 < 0)
+        return;
+      oz_angle -= 0.1;
+      oz_angle = fmod (oz_angle, 2 * M_PI);
       break;
     }
+
+//  if (oz_cos_old * cos (oz_angle) <= 0)
+//    oxy_crossed = true;
+
+  x_eye = r * sin (oz_angle) * cos (oxy_angle);
+  y_eye = r * sin (oz_angle) * sin (oxy_angle);
+  z_eye = r * cos (oz_angle);
+
+//  if (fabs (fabs (cos (oz_angle)) - 1) < 1e-6)
+//    {
+//      x_norm = x_old_norm;
+//      y_norm = y_old_norm;
+//      z_norm = 0;
+//      return;
+//    }
+//  if (fabs (cos (oz_angle)) < 1e-6)
+//    {
+//      x_norm = 0;
+//      y_norm = 0;
+//      z_norm = (z_old_norm < 0) ? -1 : 1;
+//      return;
+//    }
+
+//  if (oxy_crossed)
+//    {
+//      x_norm = 0;
+//      y_norm = 0;
+//      z_eye = 0;
+//      z_norm = (z_old_norm > 0) ? 1 : -1;
+//      return;
+//    }
+
+  x_norm = -x_eye;
+  y_norm = -y_eye;
+  z_norm = r / cos (oz_angle) - z_eye;
 }
