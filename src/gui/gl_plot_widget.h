@@ -55,8 +55,8 @@ private:
   double m_x_min = -1;
   double m_y_max = 1;
   double m_y_min = -1;
-  double m_z_max = 1;
-  double m_z_min = -1;
+  double m_z_max = 1e-6;
+  double m_z_min = -1e-6;
   bool m_vertices_uptodate;
   interpol_meta m_interpol_meta;
   bool m_interpol_meta_valid;

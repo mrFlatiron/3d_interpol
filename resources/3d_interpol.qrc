@@ -4,7 +4,6 @@
         <file>icons/left_arrow.png</file>
         <file>icons/right_arrow.png</file>
         <file>icons/up_arrow.png</file>
-        <file>icons/plot_3d.jpg</file>
         <file>icons/plot_3d.png</file>
     </qresource>
 </RCC>

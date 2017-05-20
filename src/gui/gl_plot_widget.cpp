@@ -1,6 +1,7 @@
 #include "gl_plot_widget.h"
 #include "GL/glu.h"
 #include "kernel/least_squares_interpol.h"
+#include "test_functions/test_functions.h"
 
 
 
@@ -77,7 +78,7 @@ void gl_plot_widget::paintGL ()
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity ();
-  glOrtho (1.1 * m_x_min, 1.1 * m_x_max, -r , r, - 1.1 * r, 1.1 * r);
+  glOrtho (1.1 * m_x_min, 1.1 * m_x_max, m_y_min, m_y_max, -r * 1.1, r * 1.1);
 
 
   glMatrixMode(GL_MODELVIEW);
@@ -135,7 +136,7 @@ void gl_plot_widget::paintGL ()
   glEnd ();
   glDisable(GL_POLYGON_OFFSET_FILL);
 
-  if (m <= 20 && n < 20)
+  if (m <= 20 && n <= 20)
     {
       glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 
@@ -190,6 +191,9 @@ void gl_plot_widget::fill_vertices ()
   m_vertices = new GLfloat[3 * (m + 1) * (n + 1)];
   m_colors = new GLfloat[3 * (m + 1) * (n + 1)];
 
+  m_z_max = 1e-8;
+  m_z_min = -1e-8;
+
   int iter = 0;
 
   for (int i = 0; i <= m; i++)
@@ -198,7 +202,7 @@ void gl_plot_widget::fill_vertices ()
         double x, y, z;
         m_interpolator->map_to_xy ((double)i / m, (double)j / n, x, y);
 
-        z = m_interpolator->node_val (i, j);
+        z = m_interpolator->node_val (i, j) -func (x, y);
 
         update_bounds (x, y, z);
 
@@ -292,7 +296,6 @@ camera_params::camera_params ()
   oz_angle = M_PI / 4;
   oxy_angle = M_PI / 4;
   r = sqrt (0.2);
-
   x_eye = r * sin (oz_angle) * cos (oxy_angle);
   y_eye = r * sin (oz_angle) * sin (oxy_angle);
   z_eye = r * cos (oz_angle);
