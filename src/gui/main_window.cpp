@@ -113,6 +113,16 @@ void main_window::create_widgets ()
   m_camera_down->setAutoRepeat (true);
   m_camera_down->setShortcut (QKeySequence ("Ctrl+L"));
 
+  m_zoom_in = new QToolButton (this);
+  m_zoom_in->setIcon (QIcon (":/icons/plus.png"));
+  m_zoom_in->setAutoRepeat (true);
+  m_zoom_in->setShortcut (QKeySequence("Ctrl++"));
+
+  m_zoom_out = new QToolButton (this);
+  m_zoom_out->setIcon (QIcon (":/icons/minus.png"));
+  m_zoom_out->setAutoRepeat (true);
+  m_zoom_out->setShortcut (QKeySequence("Ctrl+-"));
+
   m_head_toolbar = new QToolBar (this);
   m_head_toolbar->setOrientation (Qt::Horizontal);
 
@@ -121,6 +131,8 @@ void main_window::create_widgets ()
   m_head_toolbar->addWidget (m_turn_right);
   m_head_toolbar->addWidget (m_camera_up);
   m_head_toolbar->addWidget (m_camera_down);
+  m_head_toolbar->addWidget (m_zoom_in);
+  m_head_toolbar->addWidget (m_zoom_out);
 
   m_progress_bar = new QProgressBar (this);
   m_progress_bar->setRange (0, 3);
@@ -212,6 +224,8 @@ void main_window::do_connects ()
   connect (m_turn_right, SIGNAL (pressed ()), m_glwidget, SLOT (camera_right ()));
   connect (m_camera_up, SIGNAL (pressed ()), m_glwidget, SLOT (camera_up ()));
   connect (m_camera_down, SIGNAL (pressed ()), m_glwidget, SLOT (camera_down ()));
+  connect (m_zoom_in, SIGNAL (pressed ()), m_glwidget, SLOT (zoom_in ()));
+  connect (m_zoom_out, SIGNAL (pressed ()), m_glwidget, SLOT (zoom_out ()));
 }
 
 void main_window::interpolate ()
@@ -298,12 +312,12 @@ void main_window::check_if_done ()
       double l2  = 0;
       double avg = 0;
       double func_max = 0;
-      for (int i = 0; i <= m; i++)
-        for (int j = 0; j <= n; j++)
+      for (int k = 0; k <= 2 * m; k++)
+        for (int l = 0; l <= 2 * n; l++)
           {
-            double phi = (double) i / m;
-            double r = (double) j / n;
-            double z = m_interpol->node_val (i, j);
+            double phi = (double) k / 2 / m;
+            double r = (double) l / 2 / n;
+            double z = m_interpol->between_node_val (k, l);
             if (z > func_max)
               func_max = fabs (z);
             double val = fabs (z - m_interpol->func_val (phi, r));

@@ -40,8 +40,9 @@ public:
                          const bool func_in_phir);
   void map_to_phir (const double x, const double y, double &phi, double &r) const;
   void map_to_xy (const double phi, const double r, double &x, double &y) const;
-  double operator () (const double x, const double y) const;
-  double eval_phir (const double phi, const double r) const;
+  double operator () (const double x, const double y) const; // dont use
+  double eval_phir (const double phi, const double r) const; //dont use
+  double between_node_val (const int k, const int l) const;
   void set_expansion_coefs (const simple_vector &coefs);
   simple_vector &expansion_coefs_ref ();
   int m () const;

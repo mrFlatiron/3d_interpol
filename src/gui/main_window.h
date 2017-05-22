@@ -42,6 +42,8 @@ private:
   QToolButton *m_turn_right;
   QToolButton *m_camera_up;
   QToolButton *m_camera_down;
+  QToolButton *m_zoom_in;
+  QToolButton *m_zoom_out;
   QProgressBar *m_progress_bar;
   QToolBar *m_head_toolbar;
 

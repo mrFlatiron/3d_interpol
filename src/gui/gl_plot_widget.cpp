@@ -17,6 +17,7 @@ gl_plot_widget::gl_plot_widget (QWidget *parent) : QGLWidget (parent)
   m_colors = nullptr;
   m_interpolator = nullptr;
   m_vertices_uptodate = false;
+  m_model_view_matrix.setToIdentity ();
 }
 
 gl_plot_widget::~gl_plot_widget ()
@@ -70,30 +71,10 @@ void gl_plot_widget::paintGL ()
   glColor3f(0.0,0.0,1.0);
   fill_vertices ();
 
-  double r = pow ((m_x_max - m_x_min), 2) +
-             pow ((m_y_max - m_y_min), 2) +
-             pow ((m_z_max - m_z_min), 2);
-
-  r = sqrt (r);
-
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity ();
-  glOrtho (1.1 * m_x_min, 1.1 * m_x_max, m_y_min, m_y_max, -r * 1.1, r * 1.1);
-
-
-  glMatrixMode(GL_MODELVIEW);
-
-  glLoadIdentity();
-//  gluLookAt (r + 2, r + 2, r + 2, -r, -r, -r, 0, 0, 1);
-//  max = sqrt (a1 * a1 + b1 * b1);
-//  gluLookAt (r * cos (m_camera_angle_xy), r * sin (m_camera_angle_xy), r, 0.0,0.0,0.0,0.0,0.0,1.0);
-  gluLookAt (m_camera.x_eye,
-             m_camera.y_eye,
-             m_camera.z_eye,
-             0, 0, 0,
-             m_camera.x_norm,
-             m_camera.y_norm,
-             m_camera.z_norm);
+ to_common_volume ();
+ set_camera ();
+ mult_modelview ();
+ mult_projection ();
 
 
 
@@ -126,7 +107,7 @@ void gl_plot_widget::paintGL ()
 
   glBegin (GL_TRIANGLES);
   {
-    for (int i = 0; i < 6 * m * n; i++)
+    for (int i = 0; i < 24 * m * n; i++)
       {
         int index = m_indices[i];
         glColor3f (m_colors[3 * index], m_colors[3 * index + 1], m_colors[3 * index + 2]);
@@ -144,7 +125,7 @@ void gl_plot_widget::paintGL ()
       glColor3f(0.0,0.2,0.0);
       glBegin (GL_TRIANGLES);
       {
-        for (int i = 0; i < 6 * m * n; i++)
+        for (int i = 0; i < 24 * m * n; i++)
           glArrayElement (m_indices[i]);
       }
       glEnd ();
@@ -188,21 +169,23 @@ void gl_plot_widget::fill_vertices ()
     delete[] m_colors;
 
 
-  m_vertices = new GLfloat[3 * (m + 1) * (n + 1)];
-  m_colors = new GLfloat[3 * (m + 1) * (n + 1)];
+  m_vertices = new GLfloat[3 * (2 * m + 1) * (2 * n + 1)];
+  m_colors = new GLfloat[3 * (2 * m + 1) * (2 * n + 1)];
 
-  m_z_max = 1e-8;
-  m_z_min = -1e-8;
+  m_z_max = 1e-13;
+  m_z_min = -1e-13;
 
   int iter = 0;
 
-  for (int i = 0; i <= m; i++)
-    for (int j = 0; j <= n; j++)
+  for (int k = 0; k <= 2 * m; k++)
+    {
+    for (int l = 0; l <= 2 * n; l++)
       {
-        double x, y, z;
-        m_interpolator->map_to_xy ((double)i / m, (double)j / n, x, y);
 
-        z = m_interpolator->node_val (i, j) -func (x, y);
+        double x, y, z;
+        m_interpolator->map_to_xy ((double)k / 2 / m, (double)l / 2 / n, x, y);
+
+        z = m_interpolator->between_node_val (k, l) - func (x, y);
 
         update_bounds (x, y, z);
 
@@ -211,32 +194,67 @@ void gl_plot_widget::fill_vertices ()
         m_vertices[3 * iter + 2] = (GLfloat)z;
         iter++;
       }
+//    if (i == 0)
+//      {printf ("zero phi check:\n");
+//        for (int j = 0; j <= n; j++)
+//          {
+//            double x, y, z;
+//            m_interpolator->map_to_xy ((double)i / m, (double)j / n, x, y);
+//            printf ("[%d]: (%.3lf, %.3lf)\n", j, x, y);
+//          }
+//      }
+//    if (i == m)
+//      {
+//        printf ("2pi phi check:\n");
+//        for (int j = 0; j <= n; j++)
+//          {
+//            double x, y, z;
+//            m_interpolator->map_to_xy ((double)i / m, (double)j / n, x, y);
+//            printf ("[%d]: (%.3lf, %.3lf)\n", j, x, y);
+//          }
+//      }
+    }
 
-  m_indices = new int[6 * m * n];
+  m_indices = new int[24 * m * n];
   iter = 0;
-  for (int i = 0; i < m; i++)
-    for (int j = 0; j < n; j++)
+  for (int k = 0; k < 2 * m - 1; k++)
+    for (int l = 0; l < 2 * n; l++)
       {
         int v[6];
-        v[0] = i * (n + 1) + j;
+        v[0] = k * (2 * n + 1) + l;
         v[1] = v[0] + 1;
-        v[2] = v[1] + n + 1;
+        v[2] = v[1] + 2 * n + 1;
         v[3] = v[0];
         v[4] = v[2];
-        v[5] = v[0] + n + 1;
-        for (int k = 0; k < 6; k++)
+        v[5] = v[0] + 2 * n + 1;
+        for (int s = 0; s < 6; s++)
           {
-            m_indices[iter] = v[k];
+            m_indices[iter] = v[s];
             iter++;
           }
       }
+  for (int l = 0; l < 2 * n; l++)
+    {
+      int v[6];
+      v[0] = (2 * m - 1) * (2 * n + 1) + l;
+      v[1] = v[0] + 1;
+      v[2] = /*n + 1 - */(l + 1);
+      v[3] = v[0];
+      v[4] = v[2];
+      v[5] = /*n + 1 - */l;
+      for (int s = 0; s < 6; s++)
+        {
+          m_indices[iter] = v[s];
+          iter++;
+        }
+    }
   fill_colors ();
   m_vertices_uptodate = true;
 }
 
 void gl_plot_widget::fill_colors ()
 {
-  int vert_count = (m_interpol_meta.m + 1) * (m_interpol_meta.n + 1);
+  int vert_count = (2 * m_interpol_meta.m + 1) * (2 * m_interpol_meta.n + 1);
   for (int i = 0; i < vert_count; i++)
     {
       double x = m_vertices[3 * i];
@@ -267,6 +285,94 @@ void gl_plot_widget::update_bounds (const double x, const double y, const double
     m_z_max = z;
 }
 
+void gl_plot_widget::to_common_volume ()
+{
+  m_model_view_matrix.setToIdentity ();
+  GLfloat x_len = (m_x_max - m_x_min);
+  GLfloat y_len = (m_y_max - m_y_min);
+  GLfloat z_len = (m_z_max - m_z_min);
+  GLfloat x_scale,
+      y_scale,
+      z_scale;
+
+  if (x_len < y_len)
+    {
+      GLfloat aspect_ratio = y_len / x_len;
+      m_common_volume.xy_ratio = aspect_ratio;
+      x_scale = 2. / x_len;
+      y_scale = 2 * aspect_ratio / y_len;
+      z_scale = 1 / z_len;
+      m_common_volume.x_max = 1;
+      m_common_volume.x_min = -1;
+      m_common_volume.y_max = aspect_ratio;
+      m_common_volume.y_min = -aspect_ratio;
+    }
+  else
+    {
+      GLfloat aspect_ratio = x_len / y_len;
+      m_common_volume.xy_ratio = aspect_ratio;
+      x_scale = 2 * aspect_ratio / x_len;
+      y_scale = 2. / y_len;
+      z_scale = 1 / z_len;
+      m_common_volume.y_max = 1;
+      m_common_volume.y_min = -1;
+      m_common_volume.x_max = aspect_ratio;
+      m_common_volume.x_min = -aspect_ratio;
+    }
+  m_common_volume.z_max = 1;
+  m_common_volume.z_min = 0;
+
+  QMatrix4x4 translator (1, 0, 0, -(m_x_max + m_x_min) / 2,
+                         0, 1, 0, -(m_y_max + m_y_min) / 2,
+                         0, 0, 1, -m_z_min,
+                         0, 0, 0, 1);
+
+  m_model_view_matrix.scale (QVector3D (x_scale, y_scale, z_scale));
+  m_model_view_matrix *= translator;
+
+}
+
+void gl_plot_widget::mult_projection ()
+{
+  glMatrixMode (GL_PROJECTION);
+  glLoadIdentity ();
+  GLfloat diag = sqrt ((pow (m_common_volume.x_max - m_common_volume.x_min, 2) +
+                 pow (m_common_volume.y_max - m_common_volume.y_min, 2) +
+                 pow (m_common_volume.z_max - m_common_volume.z_min, 2)));
+  GLfloat semidiag = sqrt ((pow (m_common_volume.x_max - m_common_volume.x_min, 2) +
+                            pow (m_common_volume.y_max - m_common_volume.y_min, 2)));
+  GLfloat coef = semidiag * m_camera.zoom_coef;
+
+//  glOrtho (m_camera.zoom_coef * m_common_volume.x_min,
+//           m_camera.zoom_coef * m_common_volume.x_max,
+//           m_camera.zoom_coef * m_common_volume.x_min,
+//           m_camera.zoom_coef * m_common_volume.x_max,
+//           /*m_camera.zoom_coef * */-diag,
+//          /* m_camera.zoom_coef * */diag);
+  GLfloat side = m_camera.zoom_coef * m_common_volume.xy_ratio;
+  glOrtho (-side, side,
+           -side * height () / width (), side * height ()/ width (),
+           -10, 10);
+}
+
+void gl_plot_widget::set_camera ()
+{
+  QMatrix4x4 rotator;
+  rotator.setToIdentity ();
+  rotator.rotate (180. / M_PI * m_camera.oz_angle, 1, 0, 0);
+  rotator.rotate (180. / M_PI * m_camera.oxy_angle, 0, 0, 1);
+
+
+  rotator *= m_model_view_matrix;
+  m_model_view_matrix = rotator;
+}
+
+void gl_plot_widget::mult_modelview ()
+{
+  glMatrixMode (GL_MODELVIEW);
+  glLoadIdentity ();
+  glMultMatrixf (m_model_view_matrix.data ());
+}
 void gl_plot_widget::camera_left ()
 {
   m_camera.move (direction::left);
@@ -281,7 +387,7 @@ void gl_plot_widget::camera_right ()
 
 void gl_plot_widget::camera_up ()
 {
-  m_camera.move (direction::up);
+  m_camera.move(direction::up);
   update ();
 }
 
@@ -291,10 +397,23 @@ void gl_plot_widget::camera_down ()
   update ();
 }
 
+void gl_plot_widget::zoom_in ()
+{
+  m_camera.move (direction::in);
+  update ();
+}
+
+void gl_plot_widget::zoom_out ()
+{
+  m_camera.move (direction::out);
+  update ();
+}
+
 camera_params::camera_params ()
 {
   oz_angle = M_PI / 4;
   oxy_angle = M_PI / 4;
+  zoom_coef = 1;
   r = sqrt (0.2);
   x_eye = r * sin (oz_angle) * cos (oxy_angle);
   y_eye = r * sin (oz_angle) * sin (oxy_angle);
@@ -327,51 +446,20 @@ void camera_params::move (direction direct)
       oxy_angle = fmod (oxy_angle, 2 * M_PI);
       break;
     case direction::up:
-      if (oz_angle + 0.1 > M_PI / 2)
-        return;
       oz_angle += 0.1;
       oz_angle = fmod (oz_angle, 2 * M_PI);
       break;
     case direction::down:
-      if (oz_angle - 0.1 < 0)
-        return;
       oz_angle -= 0.1;
       oz_angle = fmod (oz_angle, 2 * M_PI);
       break;
+    case direction::in:
+      zoom_coef /= 1.05;
+      break;
+    case direction::out:
+      zoom_coef *= 1.05;
+      break;
     }
-
-//  if (oz_cos_old * cos (oz_angle) <= 0)
-//    oxy_crossed = true;
-
-  x_eye = r * sin (oz_angle) * cos (oxy_angle);
-  y_eye = r * sin (oz_angle) * sin (oxy_angle);
-  z_eye = r * cos (oz_angle);
-
-//  if (fabs (fabs (cos (oz_angle)) - 1) < 1e-6)
-//    {
-//      x_norm = x_old_norm;
-//      y_norm = y_old_norm;
-//      z_norm = 0;
-//      return;
-//    }
-//  if (fabs (cos (oz_angle)) < 1e-6)
-//    {
-//      x_norm = 0;
-//      y_norm = 0;
-//      z_norm = (z_old_norm < 0) ? -1 : 1;
-//      return;
-//    }
-
-//  if (oxy_crossed)
-//    {
-//      x_norm = 0;
-//      y_norm = 0;
-//      z_eye = 0;
-//      z_norm = (z_old_norm > 0) ? 1 : -1;
-//      return;
-//    }
-
-  x_norm = -x_eye;
-  y_norm = -y_eye;
-  z_norm = r / cos (oz_angle) - z_eye;
 }
+
+

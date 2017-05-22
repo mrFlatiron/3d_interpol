@@ -267,6 +267,16 @@ double least_squares_interpol::eval_phir (const double phi, const double r) cons
   return retval;
 }
 
+double least_squares_interpol::between_node_val (const int k, const int l) const
+{
+  int i_base = k / 2;
+  int j_base = l / 2;
+  int k_r = k - i_base * 2;
+  int l_r = l - j_base * 2;
+
+  return node_val (i_base, j_base) / 2 + node_val (i_base + k_r, j_base + l_r) / 2;
+}
+
 void least_squares_interpol::set_expansion_coefs (const simple_vector &coefs)
 {
   m_expansion_coefs = coefs;
