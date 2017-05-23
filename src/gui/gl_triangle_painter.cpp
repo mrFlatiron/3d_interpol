@@ -57,7 +57,7 @@ void gl_triangle_painter::draw_fill () const
   glVertexPointer( 3, GL_FLOAT, 0, m_vertices);
 
   if (m_colors)
-    glColorPointer (m_vertex_count, GL_FLOAT, 0, m_colors);
+    glColorPointer (3, GL_FLOAT, 0, m_colors);
 
   glDrawElements (GL_TRIANGLES, m_index_count, GL_UNSIGNED_INT, m_indices);
   glDisable (GL_POLYGON_OFFSET_FILL);
@@ -72,6 +72,7 @@ void gl_triangle_painter::draw_grid () const
   glEnableClientState (GL_VERTEX_ARRAY);
   glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
   glLineWidth(1.0f);
+  glColor3f (0.0, 0.0, 0.0);
   glVertexPointer( 3, GL_FLOAT, 0, m_vertices);
   glDrawElements (GL_TRIANGLES, m_index_count, GL_UNSIGNED_INT, m_indices);
   glDisableClientState(GL_VERTEX_ARRAY);

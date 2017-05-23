@@ -2,6 +2,7 @@
 #include "GL/glu.h"
 #include "kernel/least_squares_interpol.h"
 #include "test_functions/test_functions.h"
+#include "gl_triangle_painter.h"
 
 
 
@@ -12,7 +13,8 @@ QSize gl_plot_widget::sizeHint () const
 
 gl_plot_widget::gl_plot_widget (QWidget *parent) : QGLWidget (parent)
 {
-  setMinimumWidth (100);
+  setMinimumWidth (50);
+  m_mode = graph_mode::approximation;
   m_indices = nullptr;
   m_vertices = nullptr;
   m_colors = nullptr;
@@ -77,70 +79,14 @@ void gl_plot_widget::paintGL ()
  mult_modelview ();
  mult_projection ();
 
+ draw_axis ();
 
-
-
-  glColor3f(1.0,0.0,0.0);
-  glBegin(GL_LINES);
-      glVertex3f(m_x_min, m_y_min, m_z_min);
-      glVertex3f(m_x_max,  m_y_min, m_z_min);
-      glColor3f(0.0,1.0,0.0);
-      glVertex3f(m_x_min, m_y_min, m_z_min);
-      glVertex3f(m_x_min, m_y_max, m_z_min);
-      glColor3f(0.0,0.0,1.0);
-      glVertex3f(m_x_min, m_y_min, m_z_min);
-      glVertex3f(m_x_min, m_y_min, m_z_max);
-  glEnd();
-
-
-
-
-//  GLfloat faceColor[4] = {0.9, 0.5, 0.1, 1.0};
-//  glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, faceColor);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glVertexPointer(3,GL_FLOAT, 0 , m_vertices);
-
-  glEnable(GL_POLYGON_OFFSET_FILL);
-  glPolygonOffset(1,1);
-
-  glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
-//  glDrawElements(GL_TRIANGLES, 6 * m * n, GL_UNSIGNED_SHORT, m_indices);
-
-  glBegin (GL_TRIANGLES);
-  {
-    for (int i = 0; i < 24 * m * n; i++)
-      {
-        int index = m_indices[i];
-        glColor3f (m_colors[3 * index], m_colors[3 * index + 1], m_colors[3 * index + 2]);
-        glArrayElement (m_indices[i]);
-      }
-  }
-  glEnd ();
-  glDisable(GL_POLYGON_OFFSET_FILL);
+  m_painter.draw_fill ();
 
   if (m <= 20 && n <= 20)
     {
-      glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-
-      glLineWidth(1.0f);
-      glColor3f(0.0,0.2,0.0);
-      glBegin (GL_TRIANGLES);
-      {
-        for (int i = 0; i < 24 * m * n; i++)
-          glArrayElement (m_indices[i]);
-      }
-      glEnd ();
-
+      m_painter.draw_grid ();
     }
-
-
-  glDisableClientState(GL_VERTEX_ARRAY);
-
-  qglColor(QColor::fromCmykF(1.0,1.0,1.0,0.0));
-
-
-
-
 
 }
 
@@ -155,11 +101,19 @@ void gl_plot_widget::set_interpolator (least_squares_interpol *interpolator)
   m_interpol_meta.n = m_interpolator->n ();
 }
 
+void gl_plot_widget::set_mode (graph_mode mode)
+{
+  if (mode == m_mode)
+    return;
+
+  m_mode = mode;
+  m_vertices_uptodate = false;
+}
+
 void gl_plot_widget::fill_vertices ()
 {
   if (m_vertices_uptodate)
     return;
-  m_full_packs = 0;
   int m = m_interpol_meta.m;
   int n = m_interpol_meta.n;
   if (m_vertices)
@@ -186,7 +140,17 @@ void gl_plot_widget::fill_vertices ()
         double x, y, z;
         m_interpolator->map_to_xy ((double)k / 2 / m, (double)l / 2 / n, x, y);
 
-        z = m_interpolator->between_node_val (k, l) - func (x, y);
+        switch (m_mode)
+          {
+          case graph_mode::approximation:
+            z = m_interpolator->between_node_val (k, l);
+            break;
+          case graph_mode::residual:
+            z = m_interpolator->between_node_val (k, l) - func (x, y);
+            break;
+          }
+
+
 
         update_bounds (x, y, z);
 
@@ -195,28 +159,9 @@ void gl_plot_widget::fill_vertices ()
         m_vertices[3 * iter + 2] = (GLfloat)z;
         iter++;
       }
-//    if (i == 0)
-//      {printf ("zero phi check:\n");
-//        for (int j = 0; j <= n; j++)
-//          {
-//            double x, y, z;
-//            m_interpolator->map_to_xy ((double)i / m, (double)j / n, x, y);
-//            printf ("[%d]: (%.3lf, %.3lf)\n", j, x, y);
-//          }
-//      }
-//    if (i == m)
-//      {
-//        printf ("2pi phi check:\n");
-//        for (int j = 0; j <= n; j++)
-//          {
-//            double x, y, z;
-//            m_interpolator->map_to_xy ((double)i / m, (double)j / n, x, y);
-//            printf ("[%d]: (%.3lf, %.3lf)\n", j, x, y);
-//          }
-//      }
     }
 
-  m_indices = new int[24 * m * n];
+  m_indices = new GLuint[24 * m * n];
   iter = 0;
   for (int k = 0; k < 2 * m - 1; k++)
     for (int l = 0; l < 2 * n; l++)
@@ -250,6 +195,10 @@ void gl_plot_widget::fill_vertices ()
         }
     }
   fill_colors ();
+
+  m_painter.set_primary_data (m_vertices, 3 * (2 * m + 1) * (2 * n + 1),
+                              m_indices, 24 * m * n,
+                              m_colors);
   m_vertices_uptodate = true;
 }
 
@@ -268,6 +217,21 @@ void gl_plot_widget::fill_colors ()
       m_colors[3 * i + 1] = green;
       m_colors[3 * i + 2] = blue;
     }
+}
+
+void gl_plot_widget::draw_axis ()
+{
+  glBegin(GL_LINES);
+      glColor3f(1.0,0.0,0.0);
+      glVertex3f(m_x_min, m_y_min, m_z_min);
+      glVertex3f(m_x_max,  m_y_min, m_z_min);
+      glColor3f(0.0,1.0,0.0);
+      glVertex3f(m_x_min, m_y_min, m_z_min);
+      glVertex3f(m_x_min, m_y_max, m_z_min);
+      glColor3f(0.0,0.0,1.0);
+      glVertex3f(m_x_min, m_y_min, m_z_min);
+      glVertex3f(m_x_min, m_y_min, m_z_max);
+  glEnd();
 }
 
 void gl_plot_widget::update_bounds (const double x, const double y, const double z)
@@ -337,12 +301,12 @@ void gl_plot_widget::mult_projection ()
 {
   glMatrixMode (GL_PROJECTION);
   glLoadIdentity ();
-  GLfloat diag = sqrt ((pow (m_common_volume.x_max - m_common_volume.x_min, 2) +
-                 pow (m_common_volume.y_max - m_common_volume.y_min, 2) +
-                 pow (m_common_volume.z_max - m_common_volume.z_min, 2)));
-  GLfloat semidiag = sqrt ((pow (m_common_volume.x_max - m_common_volume.x_min, 2) +
-                            pow (m_common_volume.y_max - m_common_volume.y_min, 2)));
-  GLfloat coef = semidiag * m_camera.zoom_coef;
+//  GLfloat diag = sqrt ((pow (m_common_volume.x_max - m_common_volume.x_min, 2) +
+//                 pow (m_common_volume.y_max - m_common_volume.y_min, 2) +
+//                 pow (m_common_volume.z_max - m_common_volume.z_min, 2)));
+//  GLfloat semidiag = sqrt ((pow (m_common_volume.x_max - m_common_volume.x_min, 2) +
+//                            pow (m_common_volume.y_max - m_common_volume.y_min, 2)));
+//  GLfloat coef = semidiag * m_camera.zoom_coef;
 
 //  glOrtho (m_camera.zoom_coef * m_common_volume.x_min,
 //           m_camera.zoom_coef * m_common_volume.x_max,

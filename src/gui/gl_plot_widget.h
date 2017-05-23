@@ -3,9 +3,16 @@
 #include <QtOpenGL/QGLWidget>
 #include <QtOpenGL>
 #include <QColor>
+#include "gl_triangle_painter.h"
 class QColor;
 class least_squares_interpol;
 class QMatrix4x4;
+
+enum class graph_mode
+{
+  approximation,
+  residual
+};
 
 enum class direction
 {
@@ -62,12 +69,15 @@ class gl_plot_widget : public QGLWidget
 
 private:
   static const int max_vertex_pack = 65532;
-  int m_full_packs = 0;
+  graph_mode m_mode;
   camera_params m_camera;
   least_squares_interpol *m_interpolator;
   GLfloat *m_vertices;
-  int *m_indices;
   GLfloat *m_colors;
+  GLuint *m_indices;
+  GLuint m_vertex_size;
+  GLuint m_index_size;
+  gl_triangle_painter m_painter;
   double m_x_max = 1e-6;
   double m_x_min = -1e-6;
   double m_y_max = 1e-6;
@@ -87,9 +97,11 @@ public:
   void resizeGL(int width, int height);
   void paintGL();
   void set_interpolator (least_squares_interpol *interpolator);
+  void set_mode (graph_mode mode);
 private:
   void fill_vertices ();
   void fill_colors ();
+  void draw_axis ();
   void update_bounds (const double x, const double y, const double z);
   void to_common_volume ();
   void mult_projection ();

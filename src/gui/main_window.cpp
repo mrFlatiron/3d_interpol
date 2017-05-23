@@ -10,6 +10,7 @@
 #include "thread_ret.h"
 #include <cmath>
 #include <vector>
+#include <cstdlib>
 
 #include <QSpinBox>
 #include <QIcon>
@@ -234,6 +235,18 @@ void main_window::do_connects ()
   connect (m_zoom_out, SIGNAL (pressed ()), m_glwidget, SLOT (zoom_out ()));
 }
 
+graph_mode main_window::get_mode ()
+{
+  switch (m_graph_cb->currentIndex ())
+    {
+    case 0:
+      return graph_mode::approximation;
+    case 1:
+      return graph_mode::residual;
+    }
+  std::abort ();
+}
+
 void main_window::interpolate ()
 {
 //  if (m_interpol)
@@ -335,7 +348,7 @@ void main_window::check_if_done ()
               }
           }
       l2 = sqrt (l2);
-      avg /= ((m + 1) * (n + 1));
+      avg /= ((2 * m + 1) * (2 * n + 1));
 
       m_matrix_time->setText (QString::number (m_ret_struct.set_system_time));
       m_solution_time->setText (QString::number (m_ret_struct.system_solve_time));
@@ -344,6 +357,7 @@ void main_window::check_if_done ()
       m_avg_residual->setText (QString::number (avg));
       m_l2->setText (QString::number (l2));
       m_glwidget->set_interpolator (m_interpol);
+      m_glwidget->set_mode (get_mode ());
       emit interpolation_done ();
     }
 

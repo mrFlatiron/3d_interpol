@@ -23,6 +23,7 @@ class msr_dqgmres_initializer;
 class thread_ret;
 class thread_args;
 class computational_components;
+enum class graph_mode;
 
 class main_window : public QDialog
 {
@@ -68,6 +69,7 @@ private:
   void create_widgets ();
   void set_layouts ();
   void do_connects ();
+  graph_mode get_mode ();
   static void *computing_thread_worker (void *args);
 signals:
   void interpolation_done ();

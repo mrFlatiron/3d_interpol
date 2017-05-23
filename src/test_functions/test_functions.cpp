@@ -5,5 +5,5 @@ double func (const double x, const double y)
 {
   (void)x;
   (void)y;
- return 11;
+ return 1000;
 }
