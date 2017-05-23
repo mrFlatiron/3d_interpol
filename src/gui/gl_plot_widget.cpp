@@ -1,5 +1,6 @@
 #include "gl_plot_widget.h"
-#include "GL/glu.h"
+#include <GL/gl.h>
+#include <GL/glu.h>
 #include "kernel/least_squares_interpol.h"
 #include "test_functions/test_functions.h"
 #include "gl_triangle_painter.h"
@@ -43,19 +44,6 @@ void gl_plot_widget::initializeGL ()
 void gl_plot_widget::resizeGL (int width, int height)
 {
   glViewport(0,0,width,height);
-//  glMatrixMode(GL_PROJECTION);
-//  glLoadIdentity();
-//  double max;
-//  if (!m_interpolator)
-//    gluPerspective(100,width/height,0.1,15);
-//  else
-//    {
-//      double a1 = m_interpolator->a1 ();
-//      double b1 = m_interpolator->b1 ();
-//      max = (a1 > b1) ? 3 * a1 : 3 * b1;
-//      gluPerspective (100, width/height, 0.1, 100);
-//    }
-
 }
 
 void gl_plot_widget::paintGL ()
@@ -79,7 +67,17 @@ void gl_plot_widget::paintGL ()
  mult_modelview ();
  mult_projection ();
 
- draw_axis ();
+ glBegin(GL_LINES);
+     glColor3f(1.0,0.0,0.0);
+     glVertex3f(m_x_min, m_y_min, m_z_min);
+     glVertex3f(m_x_max,  m_y_min, m_z_min);
+     glColor3f(0.0,1.0,0.0);
+     glVertex3f(m_x_min, m_y_min, m_z_min);
+     glVertex3f(m_x_min, m_y_max, m_z_min);
+     glColor3f(0.0,0.0,1.0);
+     glVertex3f(m_x_min, m_y_min, m_z_min);
+     glVertex3f(m_x_min, m_y_min, m_z_max);
+ glEnd();
 
   m_painter.draw_fill ();
 
@@ -87,7 +85,8 @@ void gl_plot_widget::paintGL ()
     {
       m_painter.draw_grid ();
     }
-
+(void)m;
+ (void)n;
 }
 
 void gl_plot_widget::set_interpolator (least_squares_interpol *interpolator)
@@ -301,22 +300,11 @@ void gl_plot_widget::mult_projection ()
 {
   glMatrixMode (GL_PROJECTION);
   glLoadIdentity ();
-//  GLfloat diag = sqrt ((pow (m_common_volume.x_max - m_common_volume.x_min, 2) +
-//                 pow (m_common_volume.y_max - m_common_volume.y_min, 2) +
-//                 pow (m_common_volume.z_max - m_common_volume.z_min, 2)));
-//  GLfloat semidiag = sqrt ((pow (m_common_volume.x_max - m_common_volume.x_min, 2) +
-//                            pow (m_common_volume.y_max - m_common_volume.y_min, 2)));
-//  GLfloat coef = semidiag * m_camera.zoom_coef;
-
-//  glOrtho (m_camera.zoom_coef * m_common_volume.x_min,
-//           m_camera.zoom_coef * m_common_volume.x_max,
-//           m_camera.zoom_coef * m_common_volume.x_min,
-//           m_camera.zoom_coef * m_common_volume.x_max,
-//           /*m_camera.zoom_coef * */-diag,
-//          /* m_camera.zoom_coef * */diag);
   GLfloat side = m_camera.zoom_coef * m_common_volume.xy_ratio;
+  int dheight = height ();
+  int dwidth = width ();
   glOrtho (-side, side,
-           -side * height () / width (), side * height ()/ width (),
+           -side * dheight  / dwidth , side * dheight / dwidth ,
            -10, 10);
 }
 
@@ -336,7 +324,10 @@ void gl_plot_widget::mult_modelview ()
 {
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
-  glMultMatrixf (m_model_view_matrix.data ());
+  if (sizeof (qreal) == sizeof (float))
+    glMultMatrixf ((const GLfloat *)m_model_view_matrix.constData ());
+  else
+    glMultMatrixd ((const GLdouble *)m_model_view_matrix.constData ());
 }
 void gl_plot_widget::camera_left ()
 {
@@ -391,15 +382,6 @@ camera_params::camera_params ()
 
 void camera_params::move (direction direct)
 {
-//  double x_old_norm = x_norm;
-//  double y_old_norm = y_norm;
-//  double z_old_norm = z_norm;
-//  double oz_cos_old = cos (oz_angle);
-
-//  bool oz_crossed = false;
-//  bool oxy_crossed = false;
-//  (void)oxy_crossed;
-
   switch (direct)
     {
     case direction::left:

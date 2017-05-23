@@ -64,6 +64,7 @@ void gl_triangle_painter::draw_fill () const
 
   if (m_colors)
     glDisableClientState (GL_COLOR_ARRAY);
+
   glDisableClientState(GL_VERTEX_ARRAY);
 }
 
