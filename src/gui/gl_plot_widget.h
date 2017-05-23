@@ -38,13 +38,6 @@ public:
   GLfloat oxy_angle;
   GLfloat oz_angle;
   GLfloat zoom_coef;
-  GLfloat x_eye;
-  GLfloat y_eye;
-  GLfloat z_eye;
-  GLfloat x_norm;
-  GLfloat y_norm;
-  GLfloat z_norm;
-  GLfloat r;
 public:
   camera_params ();
   void move (direction direct);
@@ -68,15 +61,12 @@ class gl_plot_widget : public QGLWidget
   Q_OBJECT
 
 private:
-  static const int max_vertex_pack = 65532;
   graph_mode m_mode;
   camera_params m_camera;
   least_squares_interpol *m_interpolator;
   GLfloat *m_vertices;
   GLfloat *m_colors;
   GLuint *m_indices;
-  GLuint m_vertex_size;
-  GLuint m_index_size;
   gl_triangle_painter m_painter;
   double m_x_max = 1e-6;
   double m_x_min = -1e-6;

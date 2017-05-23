@@ -27,20 +27,6 @@ void gl_triangle_painter::set_primary_data (const GLfloat *vertices,
   m_index_count = index_count;
   m_colors = colors;
 
-//  glGenBuffers(1, &m_vertex_buffer);
-//  glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
-//  glBufferData(GL_ARRAY_BUFFER, m_vertex_count * sizeof (GLfloat), 0, GL_STATIC_DRAW);
-//  glBufferSubData(GL_ARRAY_BUFFER, 0, m_vertex_count * sizeof (GLfloat), m_vertices);
-
-//  glGenBuffers(1, &m_index_buffer);
-//  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
-//  glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_index_count * sizeof (GLuint), 0, GL_STATIC_DRAW);
-//  glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, m_index_count * sizeof (GLuint), m_indeces);
-
-//  glGenBuffers (1, &m_color_buffer);
-//  glBindBuffer (GL_ARRAY_BUFFER, m_color_buffer);
-//  glBufferData (GL_ARRAY_BUFFER, m_vertex_count * sizeof (GLfloat), 0, GL_STATIC_DRAW);
-
   m_data_valid = true;
 }
 

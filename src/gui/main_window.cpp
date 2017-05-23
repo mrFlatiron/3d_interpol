@@ -152,9 +152,7 @@ void main_window::set_layouts ()
   {
     QHBoxLayout *hlo_1 = new QHBoxLayout;
     {
-      hlo_1->addWidget (m_graph_cb, 0, Qt::AlignLeft);
-      hlo_1->addWidget (m_head_toolbar);
-      hlo_1->addWidget (m_progress_bar);
+      hlo_1->addWidget (m_head_toolbar, 1, Qt::AlignLeft);
     }
     vlo_1->addLayout (hlo_1);
     QHBoxLayout *hlo_2 = new QHBoxLayout;
@@ -163,60 +161,62 @@ void main_window::set_layouts ()
       m_glwidget->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Expanding);
       QGridLayout *glo_1 = new QGridLayout;
       {
-        glo_1->addWidget (new QLabel ("OPHI nodes:", this), 0, 0);
-        glo_1->addWidget (m_phi_partition, 0, 1);
+        int r = 0;
+        glo_1->addWidget (new QLabel ("Graph mode:", this), r, 0);
+        glo_1->addWidget (m_graph_cb, r, 1);
+        m_graph_cb->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+        r++;
+
+        glo_1->addWidget (new QLabel ("OPHI nodes:", this), r, 0);
+        glo_1->addWidget (m_phi_partition, r, 1);
         m_phi_partition->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+        r++;
 
-        glo_1->addWidget (new QLabel ("OR nodes:", this), 1, 0);
-        glo_1->addWidget (m_r_partition, 1, 1);
+        glo_1->addWidget (new QLabel ("OR nodes:", this), r, 0);
+        glo_1->addWidget (m_r_partition, r, 1);
         m_r_partition->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+        r++;
 
-        glo_1->addWidget (new QLabel ("Threads:", this), 2, 0);
-        glo_1->addWidget (m_threads, 2, 1);
+        glo_1->addWidget (new QLabel ("Threads:", this), r, 0);
+        glo_1->addWidget (m_threads, r, 1);
         m_threads->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+        r++;
 
-        glo_1->addWidget (new QLabel ("Matrix set time, sec:", this), 3, 0);
-        glo_1->addWidget (m_matrix_time, 3, 1);
+        glo_1->addWidget (new QLabel ("Matrix set time, sec:", this), r, 0);
+        glo_1->addWidget (m_matrix_time, r, 1);
         m_matrix_time->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+        r++;
 
-        glo_1->addWidget (new QLabel ("RHS set time, sec:", this), 4, 0);
-        glo_1->addWidget (m_rhs_time, 4, 1);
+        glo_1->addWidget (new QLabel ("RHS set time, sec:", this), r, 0);
+        glo_1->addWidget (m_rhs_time, r, 1);
         m_rhs_time->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+        r++;
 
-        glo_1->addWidget (new QLabel ("System solved in, sec:", this), 5, 0);
-        glo_1->addWidget (m_solution_time, 5, 1);
+        glo_1->addWidget (new QLabel ("System solved in, sec:", this), r, 0);
+        glo_1->addWidget (m_solution_time, r, 1);
         m_solution_time->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+        r++;
 
-
-
-        glo_1->addWidget (new QLabel ("Grid max residual", this), 6, 0);
-        glo_1->addWidget (m_max_residual, 6, 1);
+        glo_1->addWidget (new QLabel ("Grid max residual", this), r, 0);
+        glo_1->addWidget (m_max_residual, r, 1);
         m_max_residual->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+        r++;
 
-        glo_1->addWidget (new QLabel ("Grid avrg residual", this), 7, 0);
-        glo_1->addWidget (m_avg_residual, 7, 1);
+        glo_1->addWidget (new QLabel ("Grid avrg residual", this), r, 0);
+        glo_1->addWidget (m_avg_residual, r, 1);
         m_avg_residual->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+        r++;
 
-        glo_1->addWidget (new QLabel ("Grid L2 residual:", this), 8, 0);
-        glo_1->addWidget (m_l2, 8, 1);
+        glo_1->addWidget (new QLabel ("Grid L2 residual:", this), r, 0);
+        glo_1->addWidget (m_l2, r, 1);
         m_l2->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
-
-//        glo_1->addWidget (m_turn_left, 9, 0);
-//        m_turn_left->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
-
-//        glo_1->addWidget (m_turn_right, 9, 1);
-//        m_turn_right->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
-
-//        glo_1->addWidget (m_camera_up, 10, 0);
-//        m_camera_up->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
-
-//        glo_1->addWidget (m_camera_down, 10, 1);
-//        m_camera_down->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+        r++;
       }
       hlo_2->addLayout (glo_1);
     }
     vlo_1->addLayout (hlo_2);
     vlo_1->setAlignment (hlo_2, Qt::AlignTop);
+    vlo_1->addWidget (m_progress_bar);
   }
   setLayout (vlo_1);
 }

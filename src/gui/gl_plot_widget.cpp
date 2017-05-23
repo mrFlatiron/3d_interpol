@@ -277,18 +277,18 @@ void gl_plot_widget::to_common_volume ()
       m_common_volume.xy_ratio = aspect_ratio;
       x_scale = 2 * aspect_ratio / x_len;
       y_scale = 2. / y_len;
-      z_scale = 1 / z_len;
+      z_scale = 2 / z_len;
       m_common_volume.y_max = 1;
       m_common_volume.y_min = -1;
       m_common_volume.x_max = aspect_ratio;
       m_common_volume.x_min = -aspect_ratio;
     }
   m_common_volume.z_max = 1;
-  m_common_volume.z_min = 0;
+  m_common_volume.z_min = -1;
 
   QMatrix4x4 translator (1, 0, 0, -(m_x_max + m_x_min) / 2,
                          0, 1, 0, -(m_y_max + m_y_min) / 2,
-                         0, 0, 1, -m_z_min,
+                         0, 0, 1, -(m_z_max + m_z_min) / 2,
                          0, 0, 0, 1);
 
   m_model_view_matrix.scale (QVector3D (x_scale, y_scale, z_scale));
@@ -324,10 +324,11 @@ void gl_plot_widget::mult_modelview ()
 {
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
-  if (sizeof (qreal) == sizeof (float))
-    glMultMatrixf ((const GLfloat *)m_model_view_matrix.constData ());
+  const auto ptr = m_model_view_matrix.data ();
+  if (sizeof (ptr) == sizeof (float*))
+    glMultMatrixf ((const GLfloat *)ptr);
   else
-    glMultMatrixd ((const GLdouble *)m_model_view_matrix.constData ());
+    glMultMatrixd ((const GLdouble *)ptr);
 }
 void gl_plot_widget::camera_left ()
 {
@@ -367,17 +368,9 @@ void gl_plot_widget::zoom_out ()
 
 camera_params::camera_params ()
 {
-  oz_angle = M_PI / 4;
-  oxy_angle = M_PI / 4;
-  zoom_coef = 1;
-  r = sqrt (0.2);
-  x_eye = r * sin (oz_angle) * cos (oxy_angle);
-  y_eye = r * sin (oz_angle) * sin (oxy_angle);
-  z_eye = r * cos (oz_angle);
-
-  x_norm = -x_eye;
-  y_norm  = -y_eye;
-  z_norm = r / cos (oz_angle) - z_eye;
+  oz_angle = -1.14;
+  oxy_angle = -2.11;
+  zoom_coef = 2.0;
 }
 
 void camera_params::move (direction direct)

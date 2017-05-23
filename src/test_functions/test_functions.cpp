@@ -5,5 +5,5 @@ double func (const double x, const double y)
 {
   (void)x;
   (void)y;
- return x * x - y * y;
+ return sin (sqrt (x * x + y * y)) / sqrt (x * x + y * y);
 }
