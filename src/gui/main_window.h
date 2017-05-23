@@ -16,6 +16,7 @@ class QTimer;
 class QProgressBar;
 class QToolBar;
 class QToolButton;
+class QComboBox;
 class gl_plot_widget;
 class least_squares_interpol;
 class msr_dqgmres_initializer;
@@ -28,15 +29,15 @@ class main_window : public QDialog
   Q_OBJECT
 private:
   gl_plot_widget *m_glwidget;
-  QSpinBox *m_phi_partition;
-  QSpinBox *m_r_partition;
-  QSpinBox *m_threads;
-  QLineEdit *m_rhs_time;
-  QLineEdit *m_solution_time;
-  QLineEdit *m_matrix_time;
-  QLineEdit *m_max_residual;
-  QLineEdit *m_avg_residual;
-  QLineEdit *m_l2;
+  QSpinBox    *m_phi_partition;
+  QSpinBox    *m_r_partition;
+  QSpinBox    *m_threads;
+  QLineEdit   *m_rhs_time;
+  QLineEdit   *m_solution_time;
+  QLineEdit   *m_matrix_time;
+  QLineEdit   *m_max_residual;
+  QLineEdit   *m_avg_residual;
+  QLineEdit   *m_l2;
   QToolButton *m_compute_pb;
   QToolButton *m_turn_left;
   QToolButton *m_turn_right;
@@ -44,8 +45,9 @@ private:
   QToolButton *m_camera_down;
   QToolButton *m_zoom_in;
   QToolButton *m_zoom_out;
+  QComboBox    *m_graph_cb;
   QProgressBar *m_progress_bar;
-  QToolBar *m_head_toolbar;
+  QToolBar     *m_head_toolbar;
 
   least_squares_interpol *m_interpol;
   thread_ret m_ret_struct;

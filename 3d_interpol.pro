@@ -28,7 +28,8 @@ SOURCES += \
     src/test_functions/test_functions.cpp \
     src/gui/computational_components.cpp \
     src/gui/thread_args.cpp \
-    src/gui/thread_ret.cpp
+    src/gui/thread_ret.cpp \
+    src/gui/gl_triangle_painter.cpp
 
 HEADERS += \
     src/lib/containers/limited_deque.h \
@@ -48,7 +49,8 @@ HEADERS += \
     src/gui/computational_components.h \
     src/gui/thread_args.h \
     src/gui/thread_ret.h \
-    src/usage_string.h
+    src/usage_string.h \
+    src/gui/gl_triangle_painter.h
 
 INCLUDEPATH += src/
 INCLUDEPATH += src/lib

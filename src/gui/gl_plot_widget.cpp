@@ -12,6 +12,7 @@ QSize gl_plot_widget::sizeHint () const
 
 gl_plot_widget::gl_plot_widget (QWidget *parent) : QGLWidget (parent)
 {
+  setMinimumWidth (100);
   m_indices = nullptr;
   m_vertices = nullptr;
   m_colors = nullptr;

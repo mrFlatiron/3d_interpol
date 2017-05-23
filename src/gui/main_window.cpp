@@ -23,6 +23,7 @@
 #include <QGridLayout>
 #include <QProgressBar>
 #include <QKeySequence>
+#include <QComboBox>
 
 
 
@@ -89,6 +90,10 @@ void main_window::create_widgets ()
   m_l2 = new QLineEdit (this);
   m_l2->setReadOnly (true);
 
+  m_graph_cb = new QComboBox (this);
+  m_graph_cb->addItem ("Approximation");
+  m_graph_cb->addItem ("Residual");
+
   m_compute_pb = new QToolButton (this);
   m_compute_pb->setIcon (QIcon (":/icons/plot_3d.png"));
   m_compute_pb->setShortcut (QKeySequence ("F5"));
@@ -146,7 +151,8 @@ void main_window::set_layouts ()
   {
     QHBoxLayout *hlo_1 = new QHBoxLayout;
     {
-      hlo_1->addWidget (m_head_toolbar, 0, Qt::AlignLeft);
+      hlo_1->addWidget (m_graph_cb, 0, Qt::AlignLeft);
+      hlo_1->addWidget (m_head_toolbar);
       hlo_1->addWidget (m_progress_bar);
     }
     vlo_1->addLayout (hlo_1);
