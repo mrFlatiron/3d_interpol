@@ -109,6 +109,53 @@ void gl_plot_widget::set_mode (graph_mode mode)
   m_vertices_uptodate = false;
 }
 
+void gl_plot_widget::wheelEvent (QWheelEvent *event)
+{
+  const int step = 8 * 15;
+      int steps = (event->angleDelta() / step) .y ();
+
+      if (steps > 0)
+        for (int i = 0; i < steps; i++)
+          zoom_in ();
+      else
+        for (int i = 0; i > steps; i--)
+          zoom_out ();
+
+      event->accept();
+}
+
+void gl_plot_widget::mousePressEvent (QMouseEvent *event)
+{
+  m_mouse_tracker.start_tracking (event);
+}
+
+void gl_plot_widget::mouseMoveEvent (QMouseEvent *event)
+{
+  QPoint delta = m_mouse_tracker.get_delta (event);
+
+  int x = delta.x ();
+  int y = delta.y ();
+
+  double xpart = (double)x/width ();
+  double ypart = (double)y/height ();
+
+  int full_turns_x = 2;
+  int full_turns_y = 1;
+
+  double turns_x = full_turns_x * 2 * M_PI * xpart;
+  double turns_y = full_turns_y * 2 * M_PI * ypart;
+
+  m_camera.rotate_oxy_angle (turns_x);
+  m_camera.rotate_oz_angle (turns_y);
+  update ();
+}
+
+void gl_plot_widget::mouseDoubleClickEvent (QMouseEvent *event)
+{
+  m_camera.to_init ();
+  update ();
+}
+
 void gl_plot_widget::fill_vertices ()
 {
   if (m_vertices_uptodate)
@@ -125,9 +172,6 @@ void gl_plot_widget::fill_vertices ()
 
   m_vertices = new GLfloat[3 * (2 * m + 1) * (2 * n + 1)];
   m_colors = new GLfloat[3 * (2 * m + 1) * (2 * n + 1)];
-
-  m_z_max = 1e-13;
-  m_z_min = -1e-13;
 
   int iter = 0;
 
@@ -149,7 +193,11 @@ void gl_plot_widget::fill_vertices ()
             break;
           }
 
-
+        if (k + l == 0)
+          {
+            m_z_min = z;
+            m_z_max = z;
+          }
 
         update_bounds (x, y, z);
 
@@ -194,6 +242,22 @@ void gl_plot_widget::fill_vertices ()
         }
     }
   fill_colors ();
+
+  if (fabs (m_z_min - m_z_max) < 1e-13)
+    {
+      if (fabs (m_z_min) < 1e-14)
+        {
+          m_z_min -= 1e-14;
+          m_z_max += 1e-14;
+        }
+      else
+        {
+          double absl = fabs (m_z_max);
+
+          m_z_min  = m_z_min - absl / 10;
+          m_z_max  = m_z_max + absl / 10;
+        }
+    }
 
   m_painter.set_primary_data (m_vertices, 3 * (2 * m + 1) * (2 * n + 1),
                               m_indices, 24 * m * n,
@@ -368,9 +432,26 @@ void gl_plot_widget::zoom_out ()
 
 camera_params::camera_params ()
 {
+  to_init ();
+}
+
+void camera_params::to_init ()
+{
   oz_angle = -1.14;
   oxy_angle = -2.11;
   zoom_coef = 2.0;
+}
+
+void camera_params::rotate_oxy_angle (const GLfloat oxy_angle_delta)
+{
+  oxy_angle += oxy_angle_delta;
+  oxy_angle = fmod (oxy_angle, 2 * M_PI);
+}
+
+void camera_params::rotate_oz_angle (const GLfloat oz_angle_delta)
+{
+  oz_angle += oz_angle_delta;
+  oz_angle = fmod (oz_angle, 2 * M_PI);
 }
 
 void camera_params::move (direction direct)

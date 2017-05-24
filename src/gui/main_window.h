@@ -73,10 +73,8 @@ private:
   static void *computing_thread_worker (void *args);
 signals:
   void interpolation_done ();
-  void buttons_ready ();
 private slots:
   void interpolate ();
-  void disable_pb_and_emit ();
   void enable_pb ();
   void check_if_done ();
 };

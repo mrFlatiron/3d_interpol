@@ -4,6 +4,8 @@
 #include <QtOpenGL>
 #include <QColor>
 #include "gl_triangle_painter.h"
+#include "mouse_tracker.h"
+
 class QColor;
 class least_squares_interpol;
 class QMatrix4x4;
@@ -40,6 +42,9 @@ public:
   GLfloat zoom_coef;
 public:
   camera_params ();
+  void to_init ();
+  void rotate_oxy_angle (const GLfloat oxy_angle_delta);
+  void rotate_oz_angle (const GLfloat oz_angle_delta);
   void move (direction direct);
 };
 
@@ -68,17 +73,18 @@ private:
   GLfloat *m_colors;
   GLuint *m_indices;
   gl_triangle_painter m_painter;
-  double m_x_max = 1e-6;
-  double m_x_min = -1e-6;
-  double m_y_max = 1e-6;
-  double m_y_min = -1e-6;
-  double m_z_max = 1e-6;
-  double m_z_min = -1e-6;
+  GLfloat m_x_max = 1e-6;
+  GLfloat m_x_min = -1e-6;
+  GLfloat m_y_max = 1e-6;
+  GLfloat m_y_min = -1e-6;
+  GLfloat m_z_max = 1e-6;
+  GLfloat m_z_min = -1e-6;
   bool m_vertices_uptodate;
   interpol_meta m_interpol_meta;
   bool m_interpol_meta_valid;
   QMatrix4x4 m_model_view_matrix;
   common_volume m_common_volume;
+  mouse_tracker m_mouse_tracker;
 public:
   gl_plot_widget (QWidget *parent = nullptr);
   ~gl_plot_widget ();
@@ -88,6 +94,10 @@ public:
   void paintGL();
   void set_interpolator (least_squares_interpol *interpolator);
   void set_mode (graph_mode mode);
+  void wheelEvent (QWheelEvent *event);
+  void mousePressEvent (QMouseEvent *event);
+  void mouseMoveEvent (QMouseEvent *event);
+  void mouseDoubleClickEvent (QMouseEvent *event);
 private:
   void fill_vertices ();
   void fill_colors ();
