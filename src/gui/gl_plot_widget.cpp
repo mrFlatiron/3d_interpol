@@ -67,17 +67,7 @@ void gl_plot_widget::paintGL ()
  mult_modelview ();
  mult_projection ();
 
- glBegin(GL_LINES);
-     glColor3f(1.0,0.0,0.0);
-     glVertex3f(m_x_min, m_y_min, m_z_min);
-     glVertex3f(m_x_max,  m_y_min, m_z_min);
-     glColor3f(0.0,1.0,0.0);
-     glVertex3f(m_x_min, m_y_min, m_z_min);
-     glVertex3f(m_x_min, m_y_max, m_z_min);
-     glColor3f(0.0,0.0,1.0);
-     glVertex3f(m_x_min, m_y_min, m_z_min);
-     glVertex3f(m_x_min, m_y_min, m_z_max);
- glEnd();
+ draw_axis ();
 
   m_painter.draw_fill ();
 
@@ -112,14 +102,14 @@ void gl_plot_widget::set_mode (graph_mode mode)
 void gl_plot_widget::wheelEvent (QWheelEvent *event)
 {
   const int step = 8 * 15;
-      int steps = (event->angleDelta() / step) .y ();
+  int steps = event->delta () / step;
 
-      if (steps > 0)
-        for (int i = 0; i < steps; i++)
-          zoom_in ();
-      else
-        for (int i = 0; i > steps; i--)
-          zoom_out ();
+  if (steps > 0)
+    for (int i = 0; i < steps; i++)
+      zoom_in ();
+  else
+    for (int i = 0; i > steps; i--)
+      zoom_out ();
 
       event->accept();
 }
@@ -152,6 +142,7 @@ void gl_plot_widget::mouseMoveEvent (QMouseEvent *event)
 
 void gl_plot_widget::mouseDoubleClickEvent (QMouseEvent *event)
 {
+  (void)event;
   m_camera.to_init ();
   update ();
 }
@@ -384,15 +375,15 @@ void gl_plot_widget::set_camera ()
   m_model_view_matrix = rotator;
 }
 
+inline void glMultMatrix (const float *ptr) {glMultMatrixf (ptr);}
+inline void glMultMatrix (const double *ptr) {glMultMatrixd (ptr);}
+
 void gl_plot_widget::mult_modelview ()
 {
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
   const auto ptr = m_model_view_matrix.data ();
-  if (sizeof (ptr) == sizeof (float*))
-    glMultMatrixf ((const GLfloat *)ptr);
-  else
-    glMultMatrixd ((const GLdouble *)ptr);
+  glMultMatrix (ptr);
 }
 void gl_plot_widget::camera_left ()
 {
