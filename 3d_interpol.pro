@@ -30,7 +30,10 @@ SOURCES += \
     src/gui/thread_args.cpp \
     src/gui/thread_ret.cpp \
     src/gui/gl_triangle_painter.cpp \
-    src/gui/mouse_tracker.cpp
+    src/gui/mouse_tracker.cpp \
+    src/gui/gl_tools/camera_helper.cpp \
+    src/gui/gl_tools/common_volume.cpp \
+    src/gui/gl_tools/gl_handler.cpp
 
 HEADERS += \
     src/lib/containers/limited_deque.h \
@@ -52,7 +55,10 @@ HEADERS += \
     src/gui/thread_ret.h \
     src/usage_string.h \
     src/gui/gl_triangle_painter.h \
-    src/gui/mouse_tracker.h
+    src/gui/mouse_tracker.h \
+    src/gui/gl_tools/camera_helper.h \
+    src/gui/gl_tools/common_volume.h \
+    src/gui/gl_tools/gl_handler.h
 
 INCLUDEPATH += src/
 INCLUDEPATH += src/lib

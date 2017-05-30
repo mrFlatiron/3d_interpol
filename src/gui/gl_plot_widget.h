@@ -5,6 +5,7 @@
 #include <QColor>
 #include "gl_triangle_painter.h"
 #include "mouse_tracker.h"
+#include "gl_tools/gl_handler.h"
 
 class QColor;
 class least_squares_interpol;
@@ -34,40 +35,12 @@ struct interpol_meta
   int n;
 };
 
-class camera_params
-{
-public:
-  GLfloat oxy_angle;
-  GLfloat oz_angle;
-  GLfloat zoom_coef;
-public:
-  camera_params ();
-  void to_init ();
-  void rotate_oxy_angle (const GLfloat oxy_angle_delta);
-  void rotate_oz_angle (const GLfloat oz_angle_delta);
-  void move (direction direct);
-};
-
-class common_volume
-{
-public:
-  GLfloat x_min;
-  GLfloat x_max;
-  GLfloat y_min;
-  GLfloat y_max;
-  GLfloat z_min;
-  GLfloat z_max;
-  GLfloat xy_ratio;
-  common_volume () {};
-};
-
 class gl_plot_widget : public QGLWidget
 {
   Q_OBJECT
 
 private:
   graph_mode m_mode;
-  camera_params m_camera;
   least_squares_interpol *m_interpolator;
   GLfloat *m_vertices;
   GLfloat *m_colors;
@@ -82,8 +55,9 @@ private:
   bool m_vertices_uptodate;
   interpol_meta m_interpol_meta;
   bool m_interpol_meta_valid;
-  QMatrix4x4 m_model_view_matrix;
-  common_volume m_common_volume;
+
+  gl_handler m_glhandler;
+
   mouse_tracker m_mouse_tracker;
 public:
   gl_plot_widget (QWidget *parent = nullptr);
@@ -99,22 +73,13 @@ public:
   void mouseMoveEvent (QMouseEvent *event);
   void mouseDoubleClickEvent (QMouseEvent *event);
 private:
+  gl_handler &glhandler ();
   void fill_vertices ();
   void fill_colors ();
   void draw_axis ();
   void update_bounds (const double x, const double y, const double z);
-  void to_common_volume ();
-  void mult_projection ();
-  void set_camera ();
   void turn (direction dir);
   void mult_modelview ();
-public slots:
-  void camera_left ();
-  void camera_right ();
-  void camera_up ();
-  void camera_down ();
-  void zoom_in ();
-  void zoom_out ();
 };
 
 #endif // GL_PLOT_WIDGET_H

@@ -100,52 +100,10 @@ void main_window::create_widgets ()
   m_compute_pb->setShortcut (QKeySequence ("F5"));
   m_compute_pb->setToolTip ("Plot (F5)");
 
-  m_turn_left = new QToolButton (this);
-  m_turn_left->setIcon (QIcon (":/icons/left_arrow.png"));
-  m_turn_left->setAutoRepeat (true);
-  m_turn_left->setShortcut (QKeySequence ("Ctrl+H"));
-  m_turn_left->setToolTip ("Rotate counter-clockwise (Ctrl+H)");
-
-  m_turn_right = new QToolButton (this);
-  m_turn_right->setIcon (QIcon (":/icons/right_arrow.png"));
-  m_turn_right->setAutoRepeat (true);
-  m_turn_right->setShortcut (QKeySequence ("Ctrl+J"));
-  m_turn_right->setToolTip ("Rotate clockwise (Ctrl+J)");
-
-  m_camera_up = new QToolButton (this);
-  m_camera_up->setIcon (QIcon (":/icons/down_arrow.png"));
-  m_camera_up->setAutoRepeat (true);
-  m_camera_up->setShortcut (QKeySequence ("Ctrl+K"));
-  m_camera_up->setToolTip ("Rotate backward (Ctrl+K)");
-
-  m_camera_down = new QToolButton (this);
-  m_camera_down->setIcon (QIcon (":/icons/up_arrow.png"));
-  m_camera_down->setAutoRepeat (true);
-  m_camera_down->setShortcut (QKeySequence ("Ctrl+L"));
-  m_camera_down->setToolTip ("Rotate forward (Ctrl+L)");
-
-  m_zoom_in = new QToolButton (this);
-  m_zoom_in->setIcon (QIcon (":/icons/plus.png"));
-  m_zoom_in->setAutoRepeat (true);
-  m_zoom_in->setShortcut (QKeySequence("Ctrl++"));
-  m_zoom_in->setToolTip ("Zoom in (Ctrl++)");
-
-  m_zoom_out = new QToolButton (this);
-  m_zoom_out->setIcon (QIcon (":/icons/minus.png"));
-  m_zoom_out->setAutoRepeat (true);
-  m_zoom_out->setShortcut (QKeySequence("Ctrl+-"));
-  m_zoom_out->setToolTip ("Zoom out (Ctrl+-)");
-
   m_head_toolbar = new QToolBar (this);
   m_head_toolbar->setOrientation (Qt::Horizontal);
 
   m_head_toolbar->addWidget (m_compute_pb);
-  m_head_toolbar->addWidget (m_turn_left);
-  m_head_toolbar->addWidget (m_turn_right);
-  m_head_toolbar->addWidget (m_camera_up);
-  m_head_toolbar->addWidget (m_camera_down);
-  m_head_toolbar->addWidget (m_zoom_in);
-  m_head_toolbar->addWidget (m_zoom_out);
 
   m_progress_bar = new QProgressBar (this);
   m_progress_bar->setRange (0, 3);
@@ -234,12 +192,6 @@ void main_window::do_connects ()
   connect (this,          SIGNAL (interpolation_done ()), m_glwidget, SLOT (update ()));
   connect (this,          SIGNAL (interpolation_done ()), this, SLOT (enable_pb ()));
   connect (m_timer,       SIGNAL (timeout ()), this, SLOT (check_if_done()));
-  connect (m_turn_left,   SIGNAL (pressed ()), m_glwidget, SLOT (camera_left ()));
-  connect (m_turn_right,  SIGNAL (pressed ()), m_glwidget, SLOT (camera_right ()));
-  connect (m_camera_up,   SIGNAL (pressed ()), m_glwidget, SLOT (camera_up ()));
-  connect (m_camera_down, SIGNAL (pressed ()), m_glwidget, SLOT (camera_down ()));
-  connect (m_zoom_in,     SIGNAL (pressed ()), m_glwidget, SLOT (zoom_in ()));
-  connect (m_zoom_out,    SIGNAL (pressed ()), m_glwidget, SLOT (zoom_out ()));
 }
 
 graph_mode main_window::get_mode ()
